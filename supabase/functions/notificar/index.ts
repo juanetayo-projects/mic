@@ -30,11 +30,17 @@ function plantilla(titulo, cuerpo) {
   </div></body></html>`
 }
 
+function codigoBox(codigo) {
+  return `<div style='margin:6px 0 16px;text-align:center;background:#EAF0FA;border:1px dashed #16468E;border-radius:12px;padding:16px'>
+    <div style='font-size:11px;letter-spacing:1.5px;color:#64748b;text-transform:uppercase'>Codigo de solicitud</div>
+    <div style='font-size:28px;font-weight:800;color:#0D2D6B;letter-spacing:2px;margin-top:4px;font-family:Consolas,Menlo,monospace'>${codigo}</div>
+  </div>`
+}
+
 function tablaDatos(s, area, veh) {
   const fila = (k, v) =>
     `<tr><td style='padding:6px 0;color:#64748b;width:42%'>${k}</td><td style='padding:6px 0;font-weight:600'>${v || '-'}</td></tr>`
   return `<table style='width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 16px'>
-    ${fila('Codigo', s.codigo)}
     ${fila('Area / Proceso', area)}
     ${fila('Tipo de vehiculo', veh)}
     ${fila('Destino', s.destino)}
@@ -80,15 +86,15 @@ Deno.serve(async (req) => {
       if (emailSolicitante)
         await enviar(from, emailSolicitante, `Solicitud ${s.codigo} registrada - MIC`,
           plantilla('Su solicitud fue registrada',
-            `<p>Hemos recibido su solicitud de transporte interno. Conservela como evidencia.</p>${tablaDatos(s, area, veh)}<p>Sera notificado cuando el coordinador la gestione.</p>`), key)
+            `<p>Hemos recibido su solicitud de transporte interno. Conservela como evidencia con el siguiente codigo:</p>${codigoBox(s.codigo)}${tablaDatos(s, area, veh)}<p>Sera notificado cuando el coordinador la gestione.</p>`), key)
       await enviar(from, encargado, `Nueva solicitud por aprobar: ${s.codigo} - MIC`,
         plantilla('Nueva solicitud por aprobar',
-          `<p><b>${s.solicitante_nombre}</b> registro una nueva solicitud que requiere su gestion.</p>${tablaDatos(s, area, veh)}<p>Ingrese al sistema para aprobarla, aplazarla o rechazarla.</p>`), key)
+          `<p><b>${s.solicitante_nombre}</b> registro una nueva solicitud que requiere su gestion.</p>${codigoBox(s.codigo)}${tablaDatos(s, area, veh)}<p>Ingrese al sistema para aprobarla, aplazarla o rechazarla.</p>`), key)
     } else if (evento === 'cambio_estado') {
       if (emailSolicitante)
         await enviar(from, emailSolicitante, `Solicitud ${s.codigo}: ${estado} - MIC`,
           plantilla('Actualizacion de su solicitud',
-            `<p>El estado de su solicitud <b>${s.codigo}</b> cambio a: ${badge(estado)}</p>${comentario ? `<p style='background:#f1f5f9;border-radius:8px;padding:10px 12px'><b>Comentario:</b> ${comentario}</p>` : ''}${tablaDatos(s, area, veh)}`), key)
+            `${codigoBox(s.codigo)}<p style='text-align:center'>El estado de su solicitud cambio a: ${badge(estado)}</p>${comentario ? `<p style='background:#f1f5f9;border-radius:8px;padding:10px 12px'><b>Comentario:</b> ${comentario}</p>` : ''}${tablaDatos(s, area, veh)}`), key)
     }
     return json(200, { ok: true })
   } catch (e) {
