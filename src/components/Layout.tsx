@@ -62,16 +62,41 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           )}
         </nav>
-        <div className="mt-4 border-t border-white/15 pt-3 text-sm">
-          <div className="truncate font-medium">{perfil?.nombre}</div>
-          <div className="truncate text-xs capitalize opacity-70">{perfil?.rol}</div>
-          <button onClick={async () => { await salir(); nav('/login') }}
-            className="mt-2 w-full rounded-lg bg-white/10 px-3 py-1.5 text-xs hover:bg-white/20">
-            Cerrar sesión
-          </button>
-        </div>
       </aside>
-      <main className="flex-1 overflow-auto bg-[#F4F6FB] p-6">{children}</main>
+
+      <div className="flex flex-1 flex-col">
+        {/* Header superior azul */}
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-4
+                           bg-gradient-to-r from-[#0D2D6B] to-[#16468E] px-6 py-3 text-white shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🚐</span>
+            <span className="font-semibold">Movilidad Interna · MIC</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-bold">
+              {iniciales(perfil?.nombre)}
+            </div>
+            <div className="hidden text-right leading-tight sm:block">
+              <div className="text-sm font-medium">{perfil?.nombre}</div>
+              <div className="text-xs capitalize text-white/70">{perfil?.rol}</div>
+            </div>
+            <button onClick={async () => { await salir(); nav('/login') }}
+              className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium hover:bg-white/20">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto bg-[#F4F6FB] p-6">{children}</main>
+      </div>
     </div>
   )
+}
+
+function iniciales(nombre?: string) {
+  if (!nombre) return '·'
+  const p = nombre.trim().split(/\s+/)
+  return ((p[0]?.[0] ?? '') + (p[1]?.[0] ?? '')).toUpperCase() || '·'
 }
