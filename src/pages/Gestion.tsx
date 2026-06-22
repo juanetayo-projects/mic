@@ -118,7 +118,7 @@ export default function Gestion() {
           <tbody>
             {filas.map((s, i) => (
               <TR key={s.id} i={i}>
-                <TD className="font-mono text-xs">{s.codigo}</TD>
+                <TD className="whitespace-nowrap font-mono text-xs font-semibold text-[#0D2D6B]">{s.codigo}</TD>
                 <TD>{s.solicitante_nombre}</TD>
                 <TD>{s.area?.nombre ?? '—'}</TD>
                 <TD>{s.destino}</TD>

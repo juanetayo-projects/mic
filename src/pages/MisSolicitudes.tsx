@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { listarSolicitudes, eventosDe, Solicitud, Estado, ESTADOS } from '../lib/data'
 import { PageHeader, FilterBar, Campo, Select, Input, Boton, Tabla, THead, TH, TR, TD, EstadoBadge, Modal, Spinner } from '../components/ui'
+import IconoVehiculo from '../components/IconoVehiculo'
 
 export default function MisSolicitudes() {
   const { session, perfil } = useAuth()
@@ -54,8 +55,8 @@ export default function MisSolicitudes() {
           <tbody>
             {filas.map((s, i) => (
               <TR key={s.id} i={i}>
-                <TD className="font-mono text-xs">{s.codigo}</TD>
-                <TD>{s.fecha_solicitud}</TD>
+                <TD className="whitespace-nowrap font-mono text-xs font-semibold text-[#0D2D6B]">{s.codigo}</TD>
+                <TD className="whitespace-nowrap">{s.fecha_solicitud}</TD>
                 <TD>{s.destino}</TD>
                 <TD>{s.tipo_vehiculo?.nombre ?? '—'}</TD>
                 <TD>{s.fecha_requerida ?? '—'} {s.hora_requerida ?? ''}</TD>
@@ -86,18 +87,24 @@ export default function MisSolicitudes() {
             <Dato l="Descripción" v={detalle.descripcion} />
             {detalle.observaciones && <Dato l="Observaciones" v={detalle.observaciones} />}
             {detalle.respuesta && <Dato l="Respuesta del coordinador" v={detalle.respuesta} />}
-            <div>
-              <p className="mb-1 font-semibold text-slate-600">Historial</p>
-              <ol className="space-y-1 border-l-2 border-slate-200 pl-3">
-                {eventos.map((ev) => (
-                  <li key={ev.id} className="text-xs">
-                    <span className="capitalize font-medium text-[#16468E]">{ev.estado}</span>
-                    {' · '}{new Date(ev.created_at).toLocaleString('es-CO')}
-                    {ev.comentario && <div className="text-slate-500">{ev.comentario}</div>}
-                  </li>
-                ))}
-                {eventos.length === 0 && <li className="text-xs text-slate-400">Sin movimientos.</li>}
-              </ol>
+            <div className="flex items-end justify-between gap-4">
+              <div className="flex-1">
+                <p className="mb-1 font-semibold text-slate-600">Historial</p>
+                <ol className="space-y-1 border-l-2 border-slate-200 pl-3">
+                  {eventos.map((ev) => (
+                    <li key={ev.id} className="text-xs">
+                      <span className="capitalize font-medium text-[#16468E]">{ev.estado}</span>
+                      {' · '}{new Date(ev.created_at).toLocaleString('es-CO')}
+                      {ev.comentario && <div className="text-slate-500">{ev.comentario}</div>}
+                    </li>
+                  ))}
+                  {eventos.length === 0 && <li className="text-xs text-slate-400">Sin movimientos.</li>}
+                </ol>
+              </div>
+              <div className="shrink-0 opacity-90">
+                <IconoVehiculo tipo={detalle.tipo_vehiculo?.nombre} size={132} />
+                <div className="text-center text-[11px] font-medium text-slate-400">{detalle.tipo_vehiculo?.nombre ?? ''}</div>
+              </div>
             </div>
           </div>
         )}

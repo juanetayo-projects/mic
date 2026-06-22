@@ -3,8 +3,8 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Legend, LineChart, Line,
 } from 'recharts'
-import { listarSolicitudes, Solicitud, ESTADOS } from '../lib/data'
-import { PageHeader, FilterBar, Campo, Select, MetricCard, Spinner } from '../components/ui'
+import { listarSolicitudes, listarAreas, listarTiposVehiculo, Solicitud, Estado, ESTADOS, Area, TipoVehiculo } from '../lib/data'
+import { PageHeader, FilterBar, Campo, Select, Input, Boton, MetricCard, Spinner } from '../components/ui'
 
 const ANIOS = [2024, 2025, 2026, 2027]
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -16,46 +16,72 @@ const COLOR_ESTADO: Record<string, string> = {
 
 export default function Dashboard() {
   const [filas, setFilas] = useState<Solicitud[]>([])
+  const [areas, setAreas] = useState<Area[]>([])
+  const [tipos, setTipos] = useState<TipoVehiculo[]>([])
   const [cargando, setCargando] = useState(true)
-  const [anio, setAnio] = useState<number | ''>(2026)
+  const [f, setF] = useState({ estado: '' as Estado | '', area_id: '' as number | '', tipo_vehiculo_id: '' as number | '', anio: 2026 as number | '', mes: '' as number | '', texto: '' })
+  const set = (k: keyof typeof f, v: any) => setF((p) => ({ ...p, [k]: v }))
 
-  useEffect(() => {
-    setCargando(true)
-    void listarSolicitudes({ anio }).then((d) => { setFilas(d); setCargando(false) })
-  }, [anio])
+  async function cargar() { setCargando(true); setFilas(await listarSolicitudes(f)); setCargando(false) }
+  useEffect(() => { void listarAreas().then(setAreas); void listarTiposVehiculo().then(setTipos) }, [])
+  useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.anio, f.mes])
 
   const m = useMemo(() => {
-    const porEstado = ESTADOS.map((e) => ({ estado: e, total: filas.filter((f) => f.estado === e).length }))
+    const porEstado = ESTADOS.map((e) => ({ estado: e, total: filas.filter((x) => x.estado === e).length }))
       .filter((x) => x.total > 0)
     const areasMap = new Map<string, number>()
-    filas.forEach((f) => { const k = f.area?.nombre ?? 'Sin área'; areasMap.set(k, (areasMap.get(k) ?? 0) + 1) })
+    filas.forEach((x) => { const k = x.area?.nombre ?? 'Sin área'; areasMap.set(k, (areasMap.get(k) ?? 0) + 1) })
     const topAreas = [...areasMap.entries()].map(([area, total]) => ({ area, total }))
       .sort((a, b) => b.total - a.total).slice(0, 8)
     const vehMap = new Map<string, number>()
-    filas.forEach((f) => { const k = f.tipo_vehiculo?.nombre ?? 'Sin def.'; vehMap.set(k, (vehMap.get(k) ?? 0) + 1) })
+    filas.forEach((x) => { const k = x.tipo_vehiculo?.nombre ?? 'Sin def.'; vehMap.set(k, (vehMap.get(k) ?? 0) + 1) })
     const porVehiculo = [...vehMap.entries()].map(([name, value]) => ({ name, value }))
     const porMes = MESES.map((mm, i) => ({
       mes: mm,
-      total: filas.filter((f) => f.fecha_solicitud && new Date(f.fecha_solicitud + 'T00:00').getMonth() === i).length,
+      total: filas.filter((x) => x.fecha_solicitud && new Date(x.fecha_solicitud + 'T00:00').getMonth() === i).length,
     }))
     return { porEstado, topAreas, porVehiculo, porMes }
   }, [filas])
 
   const total = filas.length
-  const cnt = (e: string) => filas.filter((f) => f.estado === e).length
+  const cnt = (e: string) => filas.filter((x) => x.estado === e).length
 
   return (
     <div>
-      <PageHeader titulo="Dashboard MIC" subtitulo="Indicadores de solicitudes de transporte interno"
-        acciones={
-          <FilterBar>
-            <Campo label="Año">
-              <Select value={anio} onChange={(e) => setAnio(e.target.value ? Number(e.target.value) : '')}>
-                <option value="">Todos</option>{ANIOS.map((a) => <option key={a} value={a}>{a}</option>)}
-              </Select>
-            </Campo>
-          </FilterBar>
-        } />
+      <PageHeader titulo="Dashboard MIC" subtitulo="Indicadores de solicitudes de transporte interno" />
+
+      <FilterBar>
+        <Campo label="Estado">
+          <Select value={f.estado} onChange={(e) => set('estado', e.target.value)}>
+            <option value="">Todos</option>{ESTADOS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
+          </Select>
+        </Campo>
+        <Campo label="Área">
+          <Select value={f.area_id} onChange={(e) => set('area_id', e.target.value ? Number(e.target.value) : '')}>
+            <option value="">Todas</option>{areas.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+          </Select>
+        </Campo>
+        <Campo label="Vehículo">
+          <Select value={f.tipo_vehiculo_id} onChange={(e) => set('tipo_vehiculo_id', e.target.value ? Number(e.target.value) : '')}>
+            <option value="">Todos</option>{tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+          </Select>
+        </Campo>
+        <Campo label="Año">
+          <Select value={f.anio} onChange={(e) => set('anio', e.target.value ? Number(e.target.value) : '')}>
+            <option value="">Todos</option>{ANIOS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </Select>
+        </Campo>
+        <Campo label="Mes">
+          <Select value={f.mes} onChange={(e) => set('mes', e.target.value ? Number(e.target.value) : '')}>
+            <option value="">Todos</option>{MESES.map((mm, i) => <option key={mm} value={i + 1}>{mm}</option>)}
+          </Select>
+        </Campo>
+        <Campo label="Buscar">
+          <Input value={f.texto} onChange={(e) => set('texto', e.target.value)} placeholder="Código, destino…"
+            onKeyDown={(e) => e.key === 'Enter' && cargar()} />
+        </Campo>
+        <Boton variante="secundario" onClick={cargar}>Filtrar</Boton>
+      </FilterBar>
 
       {cargando ? <Spinner /> : (
         <>
