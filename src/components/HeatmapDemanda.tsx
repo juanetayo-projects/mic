@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import type { Solicitud } from '../lib/data'
+import { Modal, Tabla, THead, TH, TR, TD, EstadoBadge } from './ui'
 
 // Mapa de calor de demanda de transporte: día de la semana × hora requerida.
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -28,15 +29,22 @@ function diaSemana(fecha?: string | null): number | null {
   return (d.getDay() + 6) % 7 // JS: 0=Dom → 6; 1=Lun → 0
 }
 
+// Clasifica una solicitud en (dia, hora) o null si no aplica
+function celdaDe(s: Solicitud): { dia: number; hora: number } | null {
+  const dia = diaSemana(s.fecha_requerida ?? s.fecha_solicitud)
+  const hora = parseHora(s.hora_requerida)
+  if (dia === null || hora === null || hora < HORA_INI || hora > HORA_FIN) return null
+  return { dia, hora }
+}
+
 export default function HeatmapDemanda({ solicitudes }: { solicitudes: Solicitud[] }) {
+  const [sel, setSel] = useState<{ dia: number; hora: number } | null>(null)
+
   const { data, max } = useMemo(() => {
     const grid: number[][] = Array.from({ length: 7 }, () => HORAS.map(() => 0))
     for (const s of solicitudes) {
-      const dia = diaSemana(s.fecha_requerida ?? s.fecha_solicitud)
-      const hora = parseHora(s.hora_requerida)
-      if (dia === null || hora === null) continue
-      if (hora < HORA_INI || hora > HORA_FIN) continue
-      grid[dia][hora - HORA_INI]++
+      const c = celdaDe(s)
+      if (c) grid[c.dia][c.hora - HORA_INI]++
     }
     const arr: [number, number, number][] = []
     let mx = 0
@@ -47,10 +55,18 @@ export default function HeatmapDemanda({ solicitudes }: { solicitudes: Solicitud
     return { data: arr, max: mx }
   }, [solicitudes])
 
+  const detalle = useMemo(() => {
+    if (!sel) return []
+    return solicitudes.filter((s) => {
+      const c = celdaDe(s)
+      return c && c.dia === sel.dia && c.hora === sel.hora
+    })
+  }, [sel, solicitudes])
+
   const option = {
     tooltip: {
       position: 'top',
-      formatter: (p: any) => `${DIAS[p.value[1]]} · ${HORAS[p.value[0]]}:00<br/><b>${p.value[2]}</b> solicitud(es)`,
+      formatter: (p: any) => `${DIAS[p.value[1]]} · ${HORAS[p.value[0]]}:00<br/><b>${p.value[2]}</b> solicitud(es)<br/><span style="font-size:10px;color:#888">Clic para ver el detalle</span>`,
     },
     grid: { left: 50, right: 10, top: 10, bottom: 40 },
     xAxis: { type: 'category', data: HORAS.map((h) => `${h}h`), splitArea: { show: true }, axisLabel: { fontSize: 10 } },
@@ -67,5 +83,41 @@ export default function HeatmapDemanda({ solicitudes }: { solicitudes: Solicitud
     }],
   }
 
-  return <ReactECharts option={option} style={{ height: 280, width: '100%' }} notMerge />
+  const onEvents = {
+    click: (p: any) => {
+      const [h, d, v] = p.value as [number, number, number]
+      if (v > 0) setSel({ dia: d, hora: HORA_INI + h })
+    },
+  }
+
+  return (
+    <>
+      <ReactECharts option={option} style={{ height: 280, width: '100%' }} notMerge onEvents={onEvents} />
+
+      <Modal open={!!sel} onClose={() => setSel(null)}
+        titulo={sel ? `Solicitudes · ${DIAS[sel.dia]} a las ${sel.hora}:00 (${detalle.length})` : ''}
+        ancho="max-w-4xl">
+        <Tabla>
+          <THead><tr>
+            <TH>Código</TH><TH>Solicitante</TH><TH>Área</TH><TH>Destino</TH>
+            <TH>Vehículo</TH><TH>Fecha req.</TH><TH>Estado</TH>
+          </tr></THead>
+          <tbody>
+            {detalle.map((s, i) => (
+              <TR key={s.id} i={i}>
+                <TD className="whitespace-nowrap font-mono text-xs font-semibold text-[#0D2D6B]">{s.codigo}</TD>
+                <TD>{s.solicitante_nombre}</TD>
+                <TD>{s.area?.nombre ?? '—'}</TD>
+                <TD>{s.destino}</TD>
+                <TD>{s.tipo_vehiculo?.nombre ?? '—'}</TD>
+                <TD className="whitespace-nowrap">{s.fecha_requerida ?? '—'}</TD>
+                <TD><EstadoBadge estado={s.estado} /></TD>
+              </TR>
+            ))}
+            {detalle.length === 0 && <TR><TD className="text-slate-400">Sin registros.</TD></TR>}
+          </tbody>
+        </Tabla>
+      </Modal>
+    </>
+  )
 }
