@@ -79,7 +79,9 @@ export type FiltrosSolicitud = {
 }
 
 export async function listarSolicitudes(f: FiltrosSolicitud = {}) {
-  let q = supabase.from('solicitudes').select(SELECT).order('fecha_solicitud', { ascending: false }).order('id', { ascending: false })
+  let q = supabase.from('solicitudes').select(SELECT)
+    .order('fecha_solicitud', { ascending: false, nullsFirst: false })
+    .order('id', { ascending: false })
   if (f.estado) q = q.eq('estado', f.estado)
   if (f.area_id) q = q.eq('area_id', f.area_id)
   if (f.tipo_vehiculo_id) q = q.eq('tipo_vehiculo_id', f.tipo_vehiculo_id)

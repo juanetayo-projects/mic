@@ -9,6 +9,7 @@ import {
   PageHeader, FilterBar, Campo, Select, Input, Boton, Tabla, THead, TH, TR, TD,
   EstadoBadge, Modal, Textarea, Spinner,
 } from '../components/ui'
+import HeatmapDemanda from '../components/HeatmapDemanda'
 
 const ANIOS = [2024, 2025, 2026, 2027]
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -108,6 +109,14 @@ export default function Gestion() {
         </Campo>
         <Boton variante="secundario" onClick={cargar}>Filtrar</Boton>
       </FilterBar>
+
+      {!cargando && filas.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+          <h3 className="mb-1 font-semibold text-[#0D2D6B]">Mapa de calor de demanda</h3>
+          <p className="mb-2 text-xs text-slate-500">Solicitudes por día de la semana y hora requerida (según los filtros aplicados)</p>
+          <HeatmapDemanda solicitudes={filas} />
+        </div>
+      )}
 
       {cargando ? <Spinner /> : (
         <Tabla>
