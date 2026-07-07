@@ -172,18 +172,18 @@ export default function Gestion() {
             </div>
             <div>
               <span className="mb-1.5 block text-sm font-semibold text-slate-600">Nuevo estado *</span>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {transiciones.map((t) => {
                   const activo = nuevoEstado === t
                   const c = COLOR_OPCION[t]
                   return (
                     <label key={t}
-                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm capitalize transition ${
-                        activo ? `${c.sel} font-semibold` : 'border-slate-300 hover:bg-slate-50'
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition ${
+                        activo ? c.sel : 'border-slate-300 text-slate-600 hover:bg-slate-50'
                       }`}>
                       <input type="checkbox" checked={activo}
                         onChange={() => setNuevoEstado(activo ? '' : t)}
-                        className={`h-4 w-4 ${c.accent}`} />
+                        className={`h-4 w-4 shrink-0 ${c.accent}`} />
                       {t}
                     </label>
                   )
