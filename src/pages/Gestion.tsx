@@ -45,7 +45,8 @@ export default function Gestion() {
 
   function abrirGestion(s: Solicitud) {
     setG(s); setNuevoEstado(''); setComentario('')
-    setFechaProg(s.fecha_programada ?? '')
+    // precarga la fecha programada con la que ya tenga, o la fecha requerida de la solicitud
+    setFechaProg(s.fecha_programada ?? s.fecha_requerida ?? '')
     setObsGer(s.observaciones_geriater ?? '')
     setTalonario(s.consecutivo_talonario ?? '')
   }
@@ -158,12 +159,25 @@ export default function Gestion() {
             <div className="flex items-center gap-2">
               <span>Estado actual:</span><EstadoBadge estado={g.estado} />
             </div>
-            <Campo label="Nuevo estado *">
-              <Select value={nuevoEstado} onChange={(e) => setNuevoEstado(e.target.value as Estado)}>
-                <option value="">— Seleccione —</option>
-                {transiciones.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
-              </Select>
-            </Campo>
+            <div>
+              <span className="mb-1.5 block text-sm font-semibold text-slate-600">Nuevo estado *</span>
+              <div className="flex flex-wrap gap-2">
+                {transiciones.map((t) => {
+                  const activo = nuevoEstado === t
+                  return (
+                    <label key={t}
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm capitalize transition ${
+                        activo ? 'border-[#16468E] bg-[#EAF0FA] font-semibold text-[#0D2D6B]' : 'border-slate-300 hover:bg-slate-50'
+                      }`}>
+                      <input type="checkbox" checked={activo}
+                        onChange={() => setNuevoEstado(activo ? '' : t)}
+                        className="h-4 w-4 accent-[#16468E]" />
+                      {t}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
             {transiciones.length === 0 && <p className="text-xs text-amber-600">Esta solicitud está en un estado final.</p>}
             <Campo label="Comentario para el solicitante">
               <Textarea rows={2} value={comentario} onChange={(e) => setComentario(e.target.value)} />
