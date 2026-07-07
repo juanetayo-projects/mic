@@ -14,6 +14,17 @@ import HeatmapDemanda from '../components/HeatmapDemanda'
 const ANIOS = [2024, 2025, 2026, 2027]
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
+// Colores por estado (coinciden con EstadoBadge de la tabla) para las opciones seleccionadas
+const COLOR_OPCION: Record<Estado, { sel: string; accent: string }> = {
+  solicitada: { sel: 'border-slate-400 bg-slate-100 text-slate-700', accent: 'accent-slate-500' },
+  aprobada: { sel: 'border-emerald-400 bg-emerald-100 text-emerald-700', accent: 'accent-emerald-600' },
+  programada: { sel: 'border-blue-400 bg-blue-100 text-blue-700', accent: 'accent-blue-600' },
+  realizada: { sel: 'border-violet-400 bg-violet-100 text-violet-700', accent: 'accent-violet-600' },
+  aplazada: { sel: 'border-amber-400 bg-amber-100 text-amber-700', accent: 'accent-amber-600' },
+  rechazada: { sel: 'border-rose-400 bg-rose-100 text-rose-700', accent: 'accent-rose-600' },
+  cancelada: { sel: 'border-rose-400 bg-rose-100 text-rose-700', accent: 'accent-rose-600' },
+}
+
 export default function Gestion() {
   const { session, perfil } = useAuth()
   const [filas, setFilas] = useState<Solicitud[]>([])
@@ -164,14 +175,15 @@ export default function Gestion() {
               <div className="flex flex-wrap gap-2">
                 {transiciones.map((t) => {
                   const activo = nuevoEstado === t
+                  const c = COLOR_OPCION[t]
                   return (
                     <label key={t}
                       className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm capitalize transition ${
-                        activo ? 'border-[#16468E] bg-[#EAF0FA] font-semibold text-[#0D2D6B]' : 'border-slate-300 hover:bg-slate-50'
+                        activo ? `${c.sel} font-semibold` : 'border-slate-300 hover:bg-slate-50'
                       }`}>
                       <input type="checkbox" checked={activo}
                         onChange={() => setNuevoEstado(activo ? '' : t)}
-                        className="h-4 w-4 accent-[#16468E]" />
+                        className={`h-4 w-4 ${c.accent}`} />
                       {t}
                     </label>
                   )
