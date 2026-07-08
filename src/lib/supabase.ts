@@ -12,7 +12,7 @@ export const supabase = createClient(url, anon)
 // supabase-js no expone el mensaje de error real de una Edge Function en `data`
 // cuando la respuesta es non-2xx (deja `data` en null y sólo da un mensaje genérico
 // en `error.message`); hay que leerlo del Response crudo en `error.context`.
-export async function invocarFuncion<T = any>(nombre: string, body: unknown): Promise<{ data: T | null; error: string | null }> {
+export async function invocarFuncion<T = any>(nombre: string, body: Record<string, unknown>): Promise<{ data: T | null; error: string | null }> {
   const { data, error } = await supabase.functions.invoke(nombre, { body })
   if (error) {
     let msg = error.message
