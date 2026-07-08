@@ -16,6 +16,8 @@ import TiposVehiculo from './pages/admin/TiposVehiculo'
 import Vehiculos from './pages/admin/Vehiculos'
 import Tripulantes from './pages/admin/Tripulantes'
 import Rodamiento from './pages/Rodamiento'
+import HeatmapPage from './pages/HeatmapPage'
+import ConfigHeatmap from './pages/admin/ConfigHeatmap'
 
 function Guard({ roles, children }: { roles?: Rol[]; children: JSX.Element }) {
   const { session, perfil, loading } = useAuth()
@@ -42,11 +44,13 @@ export default function App() {
       <Route path="/dashboard" element={<Guard roles={gestor}><Dashboard /></Guard>} />
       <Route path="/reportes" element={<Guard roles={gestor}><Reportes /></Guard>} />
       <Route path="/rodamiento" element={<Guard roles={conTripulante}><Rodamiento /></Guard>} />
+      <Route path="/heatmap" element={<Guard roles={conTripulante}><HeatmapPage /></Guard>} />
       <Route path="/admin/usuarios" element={<Guard roles={soloAdmin}><Usuarios /></Guard>} />
       <Route path="/admin/areas" element={<Guard roles={soloAdmin}><Areas /></Guard>} />
       <Route path="/admin/tipos-vehiculo" element={<Guard roles={soloAdmin}><TiposVehiculo /></Guard>} />
       <Route path="/admin/vehiculos" element={<Guard roles={soloAdmin}><Vehiculos /></Guard>} />
       <Route path="/admin/tripulantes" element={<Guard roles={soloAdmin}><Tripulantes /></Guard>} />
+      <Route path="/admin/config-heatmap" element={<Guard roles={soloAdmin}><ConfigHeatmap /></Guard>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

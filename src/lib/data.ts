@@ -437,3 +437,21 @@ export async function eliminarAdjuntoRodamiento(id: number, path: string) {
   const { error } = await supabase.from('rodamiento_adjuntos').delete().eq('id', id)
   if (error) throw error
 }
+
+// ---- Configuración del mapa de calor ----
+
+export type HeatmapConfig = { id: number; colores: string[]; actualizado_por: string | null; updated_at: string }
+
+export async function getHeatmapConfig() {
+  const { data, error } = await supabase.from('heatmap_config').select('*').eq('id', 1).single()
+  if (error) throw error
+  return data as HeatmapConfig
+}
+
+export async function actualizarHeatmapConfig(colores: string[], actualizadoPor: string) {
+  const { data, error } = await supabase.from('heatmap_config')
+    .update({ colores, actualizado_por: actualizadoPor, updated_at: new Date().toISOString() })
+    .eq('id', 1).select('*').single()
+  if (error) throw error
+  return data as HeatmapConfig
+}

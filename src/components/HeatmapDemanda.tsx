@@ -37,7 +37,10 @@ function celdaDe(s: Solicitud): { dia: number; hora: number } | null {
   return { dia, hora }
 }
 
-export default function HeatmapDemanda({ solicitudes }: { solicitudes: Solicitud[] }) {
+const COLORES_DEFECTO = ['#EAF0FA', '#7FA0D6', '#16468E', '#0D2D6B']
+
+export default function HeatmapDemanda({ solicitudes, colores }: { solicitudes: Solicitud[]; colores?: string[] }) {
+  const paleta = colores && colores.length > 0 ? colores : COLORES_DEFECTO
   const [sel, setSel] = useState<{ dia: number; hora: number } | null>(null)
 
   const { data, max } = useMemo(() => {
@@ -73,7 +76,7 @@ export default function HeatmapDemanda({ solicitudes }: { solicitudes: Solicitud
     yAxis: { type: 'category', data: DIAS, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
     visualMap: {
       min: 0, max: Math.max(max, 1), calculable: true, orient: 'horizontal', left: 'center', bottom: 0,
-      inRange: { color: ['#EAF0FA', '#7FA0D6', '#16468E', '#0D2D6B'] }, itemHeight: 80, textStyle: { fontSize: 10 },
+      inRange: { color: paleta }, itemHeight: 80, textStyle: { fontSize: 10 },
     },
     series: [{
       name: 'Demanda', type: 'heatmap', data,

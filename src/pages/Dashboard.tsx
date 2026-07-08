@@ -3,7 +3,10 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Legend, LineChart, Line,
 } from 'recharts'
-import { listarSolicitudes, listarAreas, listarTiposVehiculo, Solicitud, Estado, ESTADOS, Area, TipoVehiculo } from '../lib/data'
+import {
+  listarSolicitudes, listarAreas, listarTiposVehiculo, listarVehiculos, listarTripulantes,
+  Solicitud, Estado, ESTADOS, Area, TipoVehiculo,
+} from '../lib/data'
 import { PageHeader, FilterBar, Campo, Select, Input, Boton, MetricCard, Spinner } from '../components/ui'
 
 const ANIOS = [2024, 2025, 2026, 2027]
@@ -18,12 +21,19 @@ export default function Dashboard() {
   const [filas, setFilas] = useState<Solicitud[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [tipos, setTipos] = useState<TipoVehiculo[]>([])
+  const [vehiculosActivos, setVehiculosActivos] = useState(0)
+  const [tripulantesActivos, setTripulantesActivos] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [f, setF] = useState({ estado: '' as Estado | '', area_id: '' as number | '', tipo_vehiculo_id: '' as number | '', anio: 2026 as number | '', mes: '' as number | '', texto: '' })
   const set = (k: keyof typeof f, v: any) => setF((p) => ({ ...p, [k]: v }))
 
   async function cargar() { setCargando(true); setFilas(await listarSolicitudes(f)); setCargando(false) }
-  useEffect(() => { void listarAreas().then(setAreas); void listarTiposVehiculo().then(setTipos) }, [])
+  useEffect(() => {
+    void listarAreas().then(setAreas)
+    void listarTiposVehiculo().then(setTipos)
+    void listarVehiculos(true).then((v) => setVehiculosActivos(v.length))
+    void listarTripulantes(true).then((t) => setTripulantesActivos(t.length))
+  }, [])
   useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.anio, f.mes])
 
   const m = useMemo(() => {
@@ -90,6 +100,13 @@ export default function Dashboard() {
             <MetricCard titulo="Solicitadas (pendientes)" valor={cnt('solicitada')} icono="⏳" color="ambar" />
             <MetricCard titulo="Aprobadas" valor={cnt('aprobada')} icono="✅" color="verde" />
             <MetricCard titulo="Realizadas" valor={cnt('realizada')} icono="🏁" color="morado" />
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <MetricCard titulo="Vehículos activos" valor={vehiculosActivos} icono="🚗" color="cyan" />
+            <MetricCard titulo="Tripulantes activos" valor={tripulantesActivos} icono="🧑‍✈️" color="cyan" />
+            <MetricCard titulo="Atendidas" valor={cnt('atendida')} icono="✅" color="verde" />
+            <MetricCard titulo="No atendidas" valor={cnt('no_atendida')} icono="⚠️" color="rojo" />
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
