@@ -105,6 +105,8 @@ export function EstadoBadge({ estado }: { estado: string }) {
     asignada: 'bg-blue-100 text-blue-700 ring-blue-300',
     atendida: 'bg-violet-100 text-violet-700 ring-violet-300',
     no_atendida: 'bg-rose-100 text-rose-700 ring-rose-300',
+    abierto: 'bg-emerald-100 text-emerald-700 ring-emerald-300',
+    cerrado: 'bg-slate-100 text-slate-700 ring-slate-300',
   }
   const cls = map[estado] ?? 'bg-slate-100 text-slate-700 ring-slate-300'
   return (

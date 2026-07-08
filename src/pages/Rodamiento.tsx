@@ -6,7 +6,7 @@ import {
   Rodamiento, Vehiculo, Tripulante, RodamientoAdjunto,
 } from '../lib/data'
 import {
-  PageHeader, FilterBar, Campo, Select, Input, Textarea, Boton, Tabla, THead, TH, TR, TD, Modal, Spinner,
+  PageHeader, FilterBar, Campo, Select, Input, Textarea, Boton, Tabla, THead, TH, TR, TD, Modal, Spinner, EstadoBadge,
 } from '../components/ui'
 
 export default function RodamientoPage() {
@@ -170,7 +170,7 @@ export default function RodamientoPage() {
                 <TD>{r.kilometraje_inicial ?? '—'}</TD>
                 <TD>{r.kilometraje_final ?? '—'}</TD>
                 <TD>{r.combustible_inicial ?? '—'}% → {r.combustible_final ?? '—'}%</TD>
-                <TD className="capitalize">{r.estado}</TD>
+                <TD><EstadoBadge estado={r.estado} /></TD>
                 <TD className="text-right whitespace-nowrap">
                   {r.estado === 'abierto' && (esGestor || r.tripulante_id === session?.user.id) &&
                     <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirModalCerrar(r)}>Cerrar turno</button>}
@@ -228,9 +228,16 @@ export default function RodamientoPage() {
             </div>
             <Campo label="Condiciones del vehículo al cierre"><Textarea rows={2} value={condFinal} onChange={(e) => setCondFinal(e.target.value)} /></Campo>
             <Campo label="Adjuntos (PDF o fotos)">
-              <input type="file" multiple accept=".pdf,image/*"
-                onChange={(e) => setArchivos(e.target.files ? Array.from(e.target.files) : [])}
-                className="text-sm" />
+              <div className="flex items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#0D2D6B] bg-white px-4 py-2 text-sm font-medium text-[#0D2D6B] transition hover:bg-[#EAF0FA]">
+                  📎 Seleccionar archivos
+                  <input type="file" multiple accept=".pdf,image/*" className="hidden"
+                    onChange={(e) => setArchivos(e.target.files ? Array.from(e.target.files) : [])} />
+                </label>
+                <span className="text-xs text-slate-500">
+                  {archivos.length > 0 ? `${archivos.length} archivo(s) seleccionado(s)` : 'Ningún archivo seleccionado'}
+                </span>
+              </div>
             </Campo>
             {errCerrar && <p className="text-sm text-rose-600">{errCerrar}</p>}
             <div className="flex justify-end gap-2">

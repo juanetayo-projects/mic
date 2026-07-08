@@ -12,6 +12,8 @@ export default function Usuarios() {
   const [nuevo, setNuevo] = useState<{ email: string; nombre: string; password: string; rol: string; area_id: string } | null>(null)
   const [editar, setEditar] = useState<Perfil | null>(null)
   const [emailOriginal, setEmailOriginal] = useState('')
+  const [resetPara, setResetPara] = useState<Perfil | null>(null)
+  const [nuevaClave, setNuevaClave] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -53,10 +55,14 @@ export default function Usuarios() {
     setEditar(null); await cargar()
   }
 
-  async function resetPass(p: Perfil) {
-    const nueva = prompt(`Nueva contraseña para ${p.email}:`)
-    if (!nueva) return
-    if (await invocar({ accion: 'reset', id: p.id, password: nueva })) setMsg('Contraseña actualizada.')
+  function abrirReset(p: Perfil) {
+    setResetPara(p); setNuevaClave(''); setErr(''); setMsg('')
+  }
+  async function confirmarReset() {
+    if (!resetPara || !nuevaClave) return
+    if (await invocar({ accion: 'reset', id: resetPara.id, password: nuevaClave })) {
+      setMsg('Contraseña actualizada.'); setResetPara(null)
+    }
   }
 
   async function eliminar(p: Perfil) {
@@ -89,7 +95,7 @@ export default function Usuarios() {
                 <TD>{p.activo ? 'Sí' : 'No'}</TD>
                 <TD className="text-right whitespace-nowrap">
                   <button className="text-[#16468E] hover:underline mr-3" onClick={() => { setEditar({ ...p }); setEmailOriginal(p.email) }}>Editar</button>
-                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => resetPass(p)}>Clave</button>
+                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirReset(p)}>Clave</button>
                   <button className="text-rose-600 hover:underline" onClick={() => eliminar(p)}>Eliminar</button>
                 </TD>
               </TR>
@@ -143,6 +149,22 @@ export default function Usuarios() {
               </Select>
             </Campo>
             <div className="flex justify-end gap-2"><Boton variante="secundario" onClick={() => setEditar(null)}>Cancelar</Boton><Boton onClick={guardarEdicion}>Guardar</Boton></div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Nueva contraseña */}
+      <Modal open={!!resetPara} onClose={() => setResetPara(null)} titulo={`Nueva contraseña · ${resetPara?.email ?? ''}`}>
+        {resetPara && (
+          <div className="flex flex-col gap-3">
+            <Campo label="Nueva contraseña">
+              <Input type="password" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} autoFocus />
+            </Campo>
+            {err && <p className="text-sm text-rose-600">{err}</p>}
+            <div className="flex justify-end gap-2">
+              <Boton variante="secundario" onClick={() => setResetPara(null)}>Cancelar</Boton>
+              <Boton onClick={confirmarReset} disabled={!nuevaClave}>Actualizar</Boton>
+            </div>
           </div>
         )}
       </Modal>

@@ -23,6 +23,8 @@ export default function Tripulantes() {
   const [nuevo, setNuevo] = useState<Nuevo | null>(null)
   const [editar, setEditar] = useState<Tripulante | null>(null)
   const [emailOriginal, setEmailOriginal] = useState('')
+  const [resetPara, setResetPara] = useState<Tripulante | null>(null)
+  const [nuevaClave, setNuevaClave] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -82,10 +84,14 @@ export default function Tripulantes() {
     setEditar(null); await cargar()
   }
 
-  async function resetPass(t: Tripulante) {
-    const nueva = prompt(`Nueva contraseña para ${t.profile?.email}:`)
-    if (!nueva) return
-    if (await invocar({ accion: 'reset', id: t.id, password: nueva })) setMsg('Contraseña actualizada.')
+  function abrirReset(t: Tripulante) {
+    setResetPara(t); setNuevaClave(''); setErr(''); setMsg('')
+  }
+  async function confirmarReset() {
+    if (!resetPara || !nuevaClave) return
+    if (await invocar({ accion: 'reset', id: resetPara.id, password: nuevaClave })) {
+      setMsg('Contraseña actualizada.'); setResetPara(null)
+    }
   }
 
   async function eliminar(t: Tripulante) {
@@ -118,7 +124,7 @@ export default function Tripulantes() {
                 <TD>{t.activo ? 'Sí' : 'No'}</TD>
                 <TD className="text-right whitespace-nowrap">
                   <button className="text-[#16468E] hover:underline mr-3" onClick={() => { setEditar({ ...t }); setEmailOriginal(t.profile?.email ?? '') }}>Editar</button>
-                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => resetPass(t)}>Clave</button>
+                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirReset(t)}>Clave</button>
                   <button className="text-rose-600 hover:underline" onClick={() => eliminar(t)}>Eliminar</button>
                 </TD>
               </TR>
@@ -176,6 +182,22 @@ export default function Tripulantes() {
             </Campo>
             {err && <p className="text-sm text-rose-600 sm:col-span-2">{err}</p>}
             <div className="mt-2 flex justify-end gap-2 sm:col-span-2"><Boton variante="secundario" onClick={() => setEditar(null)}>Cancelar</Boton><Boton onClick={guardarEdicion}>Guardar</Boton></div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Nueva contraseña */}
+      <Modal open={!!resetPara} onClose={() => setResetPara(null)} titulo={`Nueva contraseña · ${resetPara?.profile?.email ?? ''}`}>
+        {resetPara && (
+          <div className="flex flex-col gap-3">
+            <Campo label="Nueva contraseña">
+              <Input type="password" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} autoFocus />
+            </Campo>
+            {err && <p className="text-sm text-rose-600">{err}</p>}
+            <div className="flex justify-end gap-2">
+              <Boton variante="secundario" onClick={() => setResetPara(null)}>Cancelar</Boton>
+              <Boton onClick={confirmarReset} disabled={!nuevaClave}>Actualizar</Boton>
+            </div>
           </div>
         )}
       </Modal>

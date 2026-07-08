@@ -6,6 +6,26 @@ import { PageHeader, Boton, Spinner } from '../../components/ui'
 
 const COLORES_DEFECTO = ['#EAF0FA', '#7FA0D6', '#16468E', '#0D2D6B']
 
+// Paletas predefinidas al estilo de los temas de color de Office (claro → oscuro por familia de color).
+const PALETAS_PREDEFINIDAS: { nombre: string; colores: string[] }[] = [
+  { nombre: 'Office (azul institucional)', colores: ['#EAF0FA', '#7FA0D6', '#4472C4', '#1F3864'] },
+  { nombre: 'Escala de grises', colores: ['#F2F2F2', '#BFBFBF', '#7F7F7F', '#404040'] },
+  { nombre: 'Azul cálido', colores: ['#E9EDF4', '#8496B0', '#44546A', '#1F2A3A'] },
+  { nombre: 'Azul', colores: ['#DCE6F1', '#8DB4E2', '#1F497D', '#0F2A4A'] },
+  { nombre: 'Azul II', colores: ['#DAEEF3', '#8EB4C7', '#31859C', '#154360'] },
+  { nombre: 'Verde azulado', colores: ['#DAF2EE', '#79C7B8', '#1CA089', '#0E5347'] },
+  { nombre: 'Verde', colores: ['#E5F2DA', '#A9D18E', '#548235', '#274E13'] },
+  { nombre: 'Verde amarillo', colores: ['#F2F7DA', '#D7E4A0', '#A9B939', '#5F6B1A'] },
+  { nombre: 'Amarillo', colores: ['#FFF9DB', '#FFE28A', '#FFC000', '#A67C00'] },
+  { nombre: 'Naranja amarillo', colores: ['#FDF0DA', '#F8CB8C', '#ED9B33', '#8F5B0F'] },
+  { nombre: 'Naranja', colores: ['#FCE4D6', '#F4B183', '#C55A11', '#7A360A'] },
+  { nombre: 'Naranja rojo', colores: ['#FBE0DA', '#F1948A', '#E74C3C', '#922B21'] },
+  { nombre: 'Rojo', colores: ['#FDECEB', '#F5A3A0', '#C00000', '#6E0000'] },
+  { nombre: 'Rojo violeta', colores: ['#F6E3EE', '#D999BC', '#A6266F', '#5E1140'] },
+  { nombre: 'Violeta', colores: ['#EDE3F6', '#C4A6E0', '#7030A0', '#3E1A5A'] },
+  { nombre: 'Violeta II', colores: ['#E9E4F2', '#B8A9D9', '#6A4C93', '#3A2A54'] },
+]
+
 // Datos fijos solo para la vista previa (no vienen de la base de datos)
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const HORAS = ['5h', '6h', '7h', '8h', '9h', '10h']
@@ -66,7 +86,20 @@ export default function ConfigHeatmap() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-          <h3 className="mb-3 font-semibold text-[#0D2D6B]">Escala de colores (de menor a mayor intensidad)</h3>
+          <h3 className="mb-3 font-semibold text-[#0D2D6B]">Paletas predefinidas</h3>
+          <div className="mb-5 max-h-64 overflow-auto rounded-lg border border-slate-200">
+            {PALETAS_PREDEFINIDAS.map((p) => (
+              <button key={p.nombre} onClick={() => setColores(p.colores)}
+                className="flex w-full items-center gap-3 border-b border-slate-100 px-3 py-2 text-left text-sm last:border-0 hover:bg-[#EAF0FA]">
+                <span className="flex shrink-0 overflow-hidden rounded">
+                  {p.colores.map((c, i) => <span key={i} className="h-4 w-5" style={{ backgroundColor: c }} />)}
+                </span>
+                <span className="text-slate-700">{p.nombre}</span>
+              </button>
+            ))}
+          </div>
+
+          <h3 className="mb-3 font-semibold text-[#0D2D6B]">Escala personalizada (de menor a mayor intensidad)</h3>
           <div className="flex flex-col gap-2">
             {colores.map((c, i) => (
               <div key={i} className="flex items-center gap-3">
