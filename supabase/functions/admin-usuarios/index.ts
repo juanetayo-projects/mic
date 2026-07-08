@@ -32,10 +32,12 @@ Deno.serve(async (req) => {
     const { accion, email, password, nombre, rol, area_id, id } = await req.json()
 
     if (accion === 'crear') {
-      if (!email || !String(email).toLowerCase().endsWith('@cacsantabarbara.co'))
+      if (!email) return json(400, { error: 'Falta el correo' })
+      // Los tripulantes pueden no tener correo institucional (p.ej. conductores externos)
+      if (rol !== 'tripulante' && !String(email).toLowerCase().endsWith('@cacsantabarbara.co'))
         return json(400, { error: 'El correo debe ser @cacsantabarbara.co' })
       const { data, error } = await admin.auth.admin.createUser({
-        email, password, email_confirm: true, user_metadata: { nombre },
+        email, password, email_confirm: true, user_metadata: { nombre, rol: rol ?? 'solicitante' },
       })
       if (error) return json(400, { error: error.message })
       await admin.from('profiles').update({ nombre, rol: rol ?? 'solicitante', area_id: area_id ?? null })
