@@ -52,9 +52,9 @@ export function FilterBar({ children }: { children: ReactNode }) {
   )
 }
 
-export function Campo({ label, children }: { label: string; children: ReactNode }) {
+export function Campo({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className={`flex flex-col gap-1 text-sm ${className}`}>
       <span className="font-medium text-slate-600">{label}</span>
       {children}
     </label>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, invocarFuncion } from '../../lib/supabase'
 import { PageHeader, Boton, Input, Select, Campo, Modal, Tabla, THead, TH, TR, TD, Spinner } from '../../components/ui'
 
 type Tripulante = {
@@ -38,8 +38,8 @@ export default function Tripulantes() {
 
   async function invocar(body: any) {
     setErr(''); setMsg('')
-    const { data, error } = await supabase.functions.invoke('admin-usuarios', { body })
-    if (error || data?.error) { setErr(data?.error ?? error?.message ?? 'Error'); return null }
+    const { data, error } = await invocarFuncion('admin-usuarios', body)
+    if (error) { setErr(error); return null }
     return data
   }
 
@@ -123,26 +123,28 @@ export default function Tripulantes() {
       )}
 
       {/* Crear */}
-      <Modal open={!!nuevo} onClose={() => setNuevo(null)} titulo="Nuevo tripulante">
+      <Modal open={!!nuevo} onClose={() => setNuevo(null)} titulo="Nuevo tripulante" ancho="max-w-2xl">
         {nuevo && (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Campo label="Nombre"><Input value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} /></Campo>
-            <Campo label="Correo"><Input type="email" value={nuevo.email} onChange={(e) => setNuevo({ ...nuevo, email: e.target.value })} placeholder="correo@cacsantabarbara.co" /></Campo>
             <Campo label="Contraseña"><Input value={nuevo.password} onChange={(e) => setNuevo({ ...nuevo, password: e.target.value })} /></Campo>
+            <Campo label="Correo" className="sm:col-span-2">
+              <Input type="email" value={nuevo.email} onChange={(e) => setNuevo({ ...nuevo, email: e.target.value })} placeholder="correo@cacsantabarbara.co" />
+            </Campo>
             <Campo label="Identificación"><Input value={nuevo.identificacion} onChange={(e) => setNuevo({ ...nuevo, identificacion: e.target.value })} /></Campo>
             <Campo label="Tarjeta de conducción"><Input value={nuevo.tarjeta_conduccion} onChange={(e) => setNuevo({ ...nuevo, tarjeta_conduccion: e.target.value })} /></Campo>
             <Campo label="Categoría"><Input value={nuevo.categoria_licencia} onChange={(e) => setNuevo({ ...nuevo, categoria_licencia: e.target.value })} placeholder="p.ej. C2" /></Campo>
             <Campo label="Vencimiento licencia"><Input type="date" value={nuevo.fecha_vencimiento_licencia} onChange={(e) => setNuevo({ ...nuevo, fecha_vencimiento_licencia: e.target.value })} /></Campo>
-            {err && <p className="text-sm text-rose-600">{err}</p>}
-            <div className="flex justify-end gap-2"><Boton variante="secundario" onClick={() => setNuevo(null)}>Cancelar</Boton><Boton onClick={crear}>Crear</Boton></div>
+            {err && <p className="text-sm text-rose-600 sm:col-span-2">{err}</p>}
+            <div className="mt-2 flex justify-end gap-2 sm:col-span-2"><Boton variante="secundario" onClick={() => setNuevo(null)}>Cancelar</Boton><Boton onClick={crear}>Crear</Boton></div>
           </div>
         )}
       </Modal>
 
       {/* Editar */}
-      <Modal open={!!editar} onClose={() => setEditar(null)} titulo={`Editar · ${editar?.profile?.email ?? ''}`}>
+      <Modal open={!!editar} onClose={() => setEditar(null)} titulo={`Editar · ${editar?.profile?.email ?? ''}`} ancho="max-w-2xl">
         {editar && (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Campo label="Nombre">
               <Input value={editar.profile?.nombre ?? ''}
                 onChange={(e) => setEditar({ ...editar, profile: { ...(editar.profile ?? { email: '', activo: true }), nombre: e.target.value } })} />
@@ -162,8 +164,8 @@ export default function Tripulantes() {
                 <option value="1">Sí</option><option value="0">No</option>
               </Select>
             </Campo>
-            {err && <p className="text-sm text-rose-600">{err}</p>}
-            <div className="flex justify-end gap-2"><Boton variante="secundario" onClick={() => setEditar(null)}>Cancelar</Boton><Boton onClick={guardarEdicion}>Guardar</Boton></div>
+            {err && <p className="text-sm text-rose-600 sm:col-span-2">{err}</p>}
+            <div className="mt-2 flex justify-end gap-2 sm:col-span-2"><Boton variante="secundario" onClick={() => setEditar(null)}>Cancelar</Boton><Boton onClick={guardarEdicion}>Guardar</Boton></div>
           </div>
         )}
       </Modal>

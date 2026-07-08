@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, invocarFuncion } from '../../lib/supabase'
 import { listarAreas, Area } from '../../lib/data'
 import { PageHeader, Boton, Input, Select, Campo, Modal, Tabla, THead, TH, TR, TD, Spinner } from '../../components/ui'
 
@@ -23,8 +23,8 @@ export default function Usuarios() {
 
   async function invocar(body: any) {
     setErr(''); setMsg('')
-    const { data, error } = await supabase.functions.invoke('admin-usuarios', { body })
-    if (error || data?.error) { setErr(data?.error ?? error?.message ?? 'Error'); return false }
+    const { error } = await invocarFuncion('admin-usuarios', body)
+    if (error) { setErr(error); return false }
     return true
   }
 

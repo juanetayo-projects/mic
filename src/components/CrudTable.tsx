@@ -19,9 +19,10 @@ type Props = {
   titulo: string
   campos: CampoDef[]
   orden?: string
+  anchoModal?: string   // ancho del Modal de alta/edición (ver Modal.ancho); útil con muchos campos
 }
 
-export default function CrudTable({ tabla, titulo, campos, orden }: Props) {
+export default function CrudTable({ tabla, titulo, campos, orden, anchoModal }: Props) {
   const [filas, setFilas] = useState<Record<string, any>[]>([])
   const [opciones, setOpciones] = useState<Record<string, { id: any; label: string }[]>>({})
   const [cargando, setCargando] = useState(true)
@@ -118,9 +119,9 @@ export default function CrudTable({ tabla, titulo, campos, orden }: Props) {
         </tbody>
       </Tabla>
 
-      <Modal open={!!editando} onClose={() => setEditando(null)} titulo={`${esNuevo ? 'Nuevo' : 'Editar'} · ${titulo}`}>
+      <Modal open={!!editando} onClose={() => setEditando(null)} titulo={`${esNuevo ? 'Nuevo' : 'Editar'} · ${titulo}`} ancho={anchoModal ?? 'max-w-lg'}>
         {editando && (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {campos.filter((c) => !c.soloLectura).map((c) => (
               <Campo key={c.key} label={c.label}>
                 {c.tipo === 'boolean' ? (
@@ -143,8 +144,8 @@ export default function CrudTable({ tabla, titulo, campos, orden }: Props) {
                 )}
               </Campo>
             ))}
-            {error && <p className="text-sm text-rose-600">{error}</p>}
-            <div className="mt-2 flex justify-end gap-2">
+            {error && <p className="text-sm text-rose-600 sm:col-span-2">{error}</p>}
+            <div className="mt-2 flex justify-end gap-2 sm:col-span-2">
               <Boton variante="secundario" onClick={() => setEditando(null)}>Cancelar</Boton>
               <Boton onClick={guardar}>Guardar</Boton>
             </div>

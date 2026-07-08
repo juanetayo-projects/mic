@@ -5,7 +5,7 @@ export default function Vehiculos() {
   return (
     <div>
       <PageHeader titulo="Vehículos" subtitulo="Flota física: placas, documentación y vigencias" />
-      <CrudTable tabla="vehiculos" titulo="Vehículo" orden="placas" campos={[
+      <CrudTable tabla="vehiculos" titulo="Vehículo" orden="placas" anchoModal="max-w-2xl" campos={[
         { key: 'id', label: 'ID', soloLectura: true, ocultarEnTabla: true },
         { key: 'tipo_vehiculo_id', label: 'Tipo', tipo: 'select', optionsTable: 'tipos_vehiculo', optionLabel: 'nombre', requerido: true },
         { key: 'marca', label: 'Marca' },
