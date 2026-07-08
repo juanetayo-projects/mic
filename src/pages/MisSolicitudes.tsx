@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { listarSolicitudes, listarVehiculos, eventosDe, Solicitud, Estado, ESTADOS, Vehiculo } from '../lib/data'
+import { listarSolicitudes, listarVehiculos, eventosDe, formatDuracion, Solicitud, Estado, ESTADOS, Vehiculo } from '../lib/data'
 import { PageHeader, FilterBar, Campo, Select, Input, Boton, Tabla, THead, TH, TR, TD, EstadoBadge, Modal, Spinner, MetricCard } from '../components/ui'
 import IconoVehiculo from '../components/IconoVehiculo'
 import FormularioAtencion from '../components/FormularioAtencion'
@@ -91,7 +91,7 @@ export default function MisSolicitudes() {
         <Tabla>
           <THead><tr>
             <TH>Código</TH><TH>Fecha sol.</TH><TH>Destino</TH><TH>Vehículo</TH>
-            <TH>Requerido</TH><TH>Estado</TH><TH></TH>
+            <TH>Requerido</TH><TH>Tiempo</TH><TH>Estado</TH><TH></TH>
           </tr></THead>
           <tbody>
             {filas.map((s, i) => (
@@ -101,6 +101,7 @@ export default function MisSolicitudes() {
                 <TD>{s.destino}</TD>
                 <TD>{s.tipo_vehiculo?.nombre ?? '—'}</TD>
                 <TD>{s.fecha_requerida ?? '—'} {s.hora_requerida ?? ''}</TD>
+                <TD>{formatDuracion(s.fecha_hora_inicio_servicio, s.fecha_hora_fin_servicio)}</TD>
                 <TD><EstadoBadge estado={s.estado} /></TD>
                 <TD className="whitespace-nowrap">
                   {esTripulante && s.estado === 'asignada' &&

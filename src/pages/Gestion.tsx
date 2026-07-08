@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/auth'
 import {
   listarSolicitudes, listarAreas, listarTiposVehiculo, listarVehiculos, listarTripulantes,
-  gestionarSolicitud, eliminarSolicitud, asignarTripulante, reasignarTripulante,
+  gestionarSolicitud, eliminarSolicitud, asignarTripulante, reasignarTripulante, formatDuracion,
   Solicitud, Estado, ESTADOS, TRANSICIONES, Area, TipoVehiculo, Vehiculo, Tripulante,
 } from '../lib/data'
 import { notificar } from '../lib/notificar'
@@ -184,7 +184,7 @@ export default function Gestion() {
         <Tabla>
           <THead><tr>
             <TH>Código</TH><TH>Solicitante</TH><TH>Área</TH><TH>Destino</TH><TH>Requerido</TH>
-            <TH>Vehículo</TH><TH>Tripulante</TH><TH>Estado</TH><TH className="text-right">Acciones</TH>
+            <TH>Vehículo</TH><TH>Tripulante</TH><TH>Tiempo</TH><TH>Estado</TH><TH className="text-right">Acciones</TH>
           </tr></THead>
           <tbody>
             {filas.map((s, i) => (
@@ -196,6 +196,7 @@ export default function Gestion() {
                 <TD>{s.fecha_requerida ?? '—'} {s.hora_requerida ?? ''}</TD>
                 <TD>{s.tipo_vehiculo?.nombre ?? '—'}</TD>
                 <TD>{s.tripulante_nombre ?? '—'}</TD>
+                <TD>{formatDuracion(s.fecha_hora_inicio_servicio, s.fecha_hora_fin_servicio)}</TD>
                 <TD><EstadoBadge estado={s.estado} /></TD>
                 <TD className="text-right whitespace-nowrap">
                   <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirGestion(s)}>Gestionar</button>

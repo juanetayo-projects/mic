@@ -15,6 +15,7 @@ import Areas from './pages/admin/Areas'
 import TiposVehiculo from './pages/admin/TiposVehiculo'
 import Vehiculos from './pages/admin/Vehiculos'
 import Tripulantes from './pages/admin/Tripulantes'
+import Rodamiento from './pages/Rodamiento'
 
 function Guard({ roles, children }: { roles?: Rol[]; children: JSX.Element }) {
   const { session, perfil, loading } = useAuth()
@@ -27,6 +28,7 @@ function Guard({ roles, children }: { roles?: Rol[]; children: JSX.Element }) {
 const gestor: Rol[] = ['administrador', 'coordinador']
 const soloAdmin: Rol[] = ['administrador']
 const noTripulante: Rol[] = ['administrador', 'coordinador', 'solicitante']
+const conTripulante: Rol[] = ['administrador', 'coordinador', 'tripulante']
 
 export default function App() {
   const { session, loading } = useAuth()
@@ -39,6 +41,7 @@ export default function App() {
       <Route path="/gestion" element={<Guard roles={gestor}><Gestion /></Guard>} />
       <Route path="/dashboard" element={<Guard roles={gestor}><Dashboard /></Guard>} />
       <Route path="/reportes" element={<Guard roles={gestor}><Reportes /></Guard>} />
+      <Route path="/rodamiento" element={<Guard roles={conTripulante}><Rodamiento /></Guard>} />
       <Route path="/admin/usuarios" element={<Guard roles={soloAdmin}><Usuarios /></Guard>} />
       <Route path="/admin/areas" element={<Guard roles={soloAdmin}><Areas /></Guard>} />
       <Route path="/admin/tipos-vehiculo" element={<Guard roles={soloAdmin}><TiposVehiculo /></Guard>} />

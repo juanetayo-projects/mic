@@ -27,6 +27,17 @@ export const TRANSICIONES: Record<Estado, Estado[]> = {
   realizada: [],
 }
 
+// Duración legible entre dos timestamps ISO (p.ej. "1h 25min"); '—' si falta alguno.
+export function formatDuracion(inicio: string | null, fin: string | null): string {
+  if (!inicio || !fin) return '—'
+  const ms = new Date(fin).getTime() - new Date(inicio).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return '—'
+  const totalMin = Math.round(ms / 60000)
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return h > 0 ? `${h}h ${m}min` : `${m}min`
+}
+
 export type Area = { id: number; nombre: string; activo: boolean }
 export type TipoVehiculo = { id: number; nombre: string; activo: boolean }
 
@@ -308,4 +319,121 @@ export async function marcarNoAtendida(
     actor_id: tripulante.id, actor_nombre: tripulante.nombre,
   })
   return sol
+}
+
+// ---- Rodamiento (bitácora de turnos) ----
+
+export type Rodamiento = {
+  id: number
+  vehiculo_id: number
+  tripulante_id: string
+  fecha_inicio_turno: string
+  fecha_fin_turno: string | null
+  kilometraje_inicial: number | null
+  kilometraje_final: number | null
+  combustible_inicial: number | null
+  combustible_final: number | null
+  condiciones_inicial: string | null
+  condiciones_final: string | null
+  estado: 'abierto' | 'cerrado'
+  created_at: string
+  vehiculo?: Vehiculo | null
+  tripulante?: Tripulante | null
+}
+
+export type RodamientoAdjunto = {
+  id: number
+  rodamiento_id: number
+  storage_path: string
+  nombre_original: string | null
+  tipo_mime: string | null
+  subido_por: string | null
+  created_at: string
+}
+
+const RODAMIENTO_SELECT =
+  '*, vehiculo:vehiculos(id,placas,marca,modelo), tripulante:tripulantes(id,identificacion,profile:profiles(nombre))'
+
+export type FiltrosRodamiento = {
+  vehiculo_id?: number | ''
+  tripulante_id?: string | ''
+  estado?: 'abierto' | 'cerrado' | ''
+  fecha_desde?: string
+  fecha_hasta?: string
+  soloTripulante?: string
+}
+
+export async function listarRodamiento(f: FiltrosRodamiento = {}) {
+  let q = supabase.from('rodamiento').select(RODAMIENTO_SELECT).order('fecha_inicio_turno', { ascending: false })
+  if (f.vehiculo_id) q = q.eq('vehiculo_id', f.vehiculo_id)
+  if (f.tripulante_id) q = q.eq('tripulante_id', f.tripulante_id)
+  if (f.soloTripulante) q = q.eq('tripulante_id', f.soloTripulante)
+  if (f.estado) q = q.eq('estado', f.estado)
+  if (f.fecha_desde) q = q.gte('fecha_inicio_turno', f.fecha_desde)
+  if (f.fecha_hasta) q = q.lte('fecha_inicio_turno', `${f.fecha_hasta}T23:59:59`)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as Rodamiento[]
+}
+
+export async function rodamientoAbiertoDe(tripulanteId: string) {
+  const { data, error } = await supabase.from('rodamiento').select(RODAMIENTO_SELECT)
+    .eq('tripulante_id', tripulanteId).eq('estado', 'abierto').maybeSingle()
+  if (error) throw error
+  return data as Rodamiento | null
+}
+
+export async function abrirTurno(
+  input: { vehiculo_id: number; kilometraje_inicial: number | null; combustible_inicial: number | null; condiciones_inicial: string | null },
+  tripulanteId: string,
+) {
+  // Chequeo en cliente para un mensaje claro; el índice único parcial en BD es la garantía final
+  // ("un tripulante no puede tomar un servicio sin haber cerrado el anterior").
+  const abierto = await rodamientoAbiertoDe(tripulanteId)
+  if (abierto) throw new Error('Ya tiene un turno abierto. Debe cerrarlo antes de abrir uno nuevo.')
+  const { data, error } = await supabase.from('rodamiento').insert({
+    ...input, tripulante_id: tripulanteId, fecha_inicio_turno: new Date().toISOString(), estado: 'abierto',
+  }).select(RODAMIENTO_SELECT).single()
+  if (error) throw error
+  return data as Rodamiento
+}
+
+export async function cerrarTurno(
+  id: number,
+  input: { kilometraje_final: number | null; combustible_final: number | null; condiciones_final: string | null },
+) {
+  const { data, error } = await supabase.from('rodamiento').update({
+    ...input, fecha_fin_turno: new Date().toISOString(), estado: 'cerrado',
+  }).eq('id', id).select(RODAMIENTO_SELECT).single()
+  if (error) throw error
+  return data as Rodamiento
+}
+
+export async function listarAdjuntosRodamiento(rodamientoId: number) {
+  const { data, error } = await supabase.from('rodamiento_adjuntos')
+    .select('*').eq('rodamiento_id', rodamientoId).order('created_at')
+  if (error) throw error
+  return (data ?? []) as RodamientoAdjunto[]
+}
+
+export async function subirAdjuntoRodamiento(rodamientoId: number, file: File, subidoPor: string) {
+  const path = `${rodamientoId}/${Date.now()}_${file.name}`
+  const { error: upErr } = await supabase.storage.from('rodamiento-adjuntos').upload(path, file)
+  if (upErr) throw upErr
+  const { error } = await supabase.from('rodamiento_adjuntos').insert({
+    rodamiento_id: rodamientoId, storage_path: path, nombre_original: file.name, tipo_mime: file.type, subido_por: subidoPor,
+  })
+  if (error) throw error
+}
+
+export async function urlFirmadaAdjunto(path: string) {
+  const { data, error } = await supabase.storage.from('rodamiento-adjuntos').createSignedUrl(path, 3600)
+  if (error) throw error
+  return data.signedUrl
+}
+
+export async function eliminarAdjuntoRodamiento(id: number, path: string) {
+  await supabase.storage.from('rodamiento-adjuntos').remove([path])
+  const { error } = await supabase.from('rodamiento_adjuntos').delete().eq('id', id)
+  if (error) throw error
 }

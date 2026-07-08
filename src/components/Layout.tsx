@@ -9,10 +9,12 @@ type Item = { to: string; label: string; icono: string }
 const operativos = (esGestor: boolean, esTripulante: boolean): Item[] => [
   { to: '/', label: esTripulante ? 'Mis servicios asignados' : 'Mis solicitudes', icono: '📋' },
   ...(esTripulante ? [] : [{ to: '/nueva', label: 'Nueva solicitud', icono: '➕' }]),
+  ...(esTripulante ? [{ to: '/rodamiento', label: 'Rodamiento', icono: '🛣️' }] : []),
   ...(esGestor ? [
     { to: '/gestion', label: 'Gestión de solicitudes', icono: '✅' },
     { to: '/dashboard', label: 'Dashboard', icono: '📊' },
     { to: '/reportes', label: 'Reportes', icono: '📑' },
+    { to: '/rodamiento', label: 'Rodamiento', icono: '🛣️' },
   ] : []),
 ]
 
