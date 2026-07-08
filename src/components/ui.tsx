@@ -102,11 +102,14 @@ export function EstadoBadge({ estado }: { estado: string }) {
     aplazada: 'bg-amber-100 text-amber-700 ring-amber-300',
     rechazada: 'bg-rose-100 text-rose-700 ring-rose-300',
     cancelada: 'bg-rose-100 text-rose-700 ring-rose-300',
+    asignada: 'bg-blue-100 text-blue-700 ring-blue-300',
+    atendida: 'bg-violet-100 text-violet-700 ring-violet-300',
+    no_atendida: 'bg-rose-100 text-rose-700 ring-rose-300',
   }
   const cls = map[estado] ?? 'bg-slate-100 text-slate-700 ring-slate-300'
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ${cls}`}>
-      {estado}
+      {estado.replace('_', ' ')}
     </span>
   )
 }

@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import type { Solicitud } from './data'
 
 // Invoca la Edge Function 'notificar' (Resend). No bloquea el flujo si falla.
-type Evento = 'nueva' | 'cambio_estado'
+type Evento = 'nueva' | 'cambio_estado' | 'asignada' | 'atendida' | 'no_atendida' | 'reasignada'
 
 export async function notificar(evento: Evento, solicitud: Solicitud, extra?: { estado?: string; comentario?: string }) {
   try {

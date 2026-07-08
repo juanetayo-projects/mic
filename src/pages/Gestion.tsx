@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/auth'
 import {
-  listarSolicitudes, listarAreas, listarTiposVehiculo, gestionarSolicitud, eliminarSolicitud,
-  Solicitud, Estado, ESTADOS, TRANSICIONES, Area, TipoVehiculo,
+  listarSolicitudes, listarAreas, listarTiposVehiculo, listarVehiculos, listarTripulantes,
+  gestionarSolicitud, eliminarSolicitud, asignarTripulante, reasignarTripulante,
+  Solicitud, Estado, ESTADOS, TRANSICIONES, Area, TipoVehiculo, Vehiculo, Tripulante,
 } from '../lib/data'
 import { notificar } from '../lib/notificar'
 import {
@@ -23,6 +24,9 @@ const COLOR_OPCION: Record<Estado, { sel: string; accent: string }> = {
   aplazada: { sel: 'border-amber-400 bg-amber-100 text-amber-700', accent: 'accent-amber-600' },
   rechazada: { sel: 'border-rose-400 bg-rose-100 text-rose-700', accent: 'accent-rose-600' },
   cancelada: { sel: 'border-rose-400 bg-rose-100 text-rose-700', accent: 'accent-rose-600' },
+  asignada: { sel: 'border-blue-400 bg-blue-100 text-blue-700', accent: 'accent-blue-600' },
+  atendida: { sel: 'border-violet-400 bg-violet-100 text-violet-700', accent: 'accent-violet-600' },
+  no_atendida: { sel: 'border-rose-400 bg-rose-100 text-rose-700', accent: 'accent-rose-600' },
 }
 
 export default function Gestion() {
@@ -30,6 +34,8 @@ export default function Gestion() {
   const [filas, setFilas] = useState<Solicitud[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [tipos, setTipos] = useState<TipoVehiculo[]>([])
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
+  const [tripulantes, setTripulantes] = useState<Tripulante[]>([])
   const [cargando, setCargando] = useState(true)
   const [f, setF] = useState({ estado: '' as Estado | '', area_id: '' as number | '', tipo_vehiculo_id: '' as number | '', anio: '' as number | '', mes: '' as number | '', texto: '' })
   const set = (k: keyof typeof f, v: any) => setF((p) => ({ ...p, [k]: v }))
@@ -43,6 +49,14 @@ export default function Gestion() {
   const [talonario, setTalonario] = useState('')
   const [guardando, setGuardando] = useState(false)
 
+  // asignación / reasignación de tripulante
+  const [asignacion, setAsignacion] = useState<{ solicitud: Solicitud; modo: 'asignar' | 'reasignar' } | null>(null)
+  const [tripulanteSel, setTripulanteSel] = useState('')
+  const [vehiculoSel, setVehiculoSel] = useState<number | ''>('')
+  const [comentarioAsig, setComentarioAsig] = useState('')
+  const [motivoReasig, setMotivoReasig] = useState('')
+  const [guardandoAsig, setGuardandoAsig] = useState(false)
+
   async function cargar() {
     setCargando(true)
     setFilas(await listarSolicitudes(f))
@@ -51,6 +65,8 @@ export default function Gestion() {
   useEffect(() => {
     void listarAreas().then(setAreas)
     void listarTiposVehiculo().then(setTipos)
+    void listarVehiculos(true).then(setVehiculos)
+    void listarTripulantes(true).then(setTripulantes)
   }, [])
   useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.anio, f.mes])
 
@@ -83,7 +99,41 @@ export default function Gestion() {
     await eliminarSolicitud(s.id); await cargar()
   }
 
-  const transiciones = g ? TRANSICIONES[g.estado] : []
+  // 'asignada' se excluye del selector genérico: requiere elegir tripulante+vehículo,
+  // lo cual se hace con el modal dedicado de Asignar/Reasignar.
+  const transiciones = g ? TRANSICIONES[g.estado].filter((t) => t !== 'asignada') : []
+
+  function abrirAsignar(s: Solicitud) {
+    setAsignacion({ solicitud: s, modo: 'asignar' })
+    setTripulanteSel(''); setVehiculoSel(''); setComentarioAsig(''); setMotivoReasig('')
+  }
+  function abrirReasignar(s: Solicitud) {
+    setAsignacion({ solicitud: s, modo: 'reasignar' })
+    setTripulanteSel(''); setVehiculoSel(s.vehiculo_id ?? ''); setComentarioAsig(''); setMotivoReasig('')
+  }
+
+  async function aplicarAsignacion() {
+    if (!asignacion || !session || !perfil || !tripulanteSel) return
+    setGuardandoAsig(true)
+    try {
+      const trip = tripulantes.find((t) => t.id === tripulanteSel)
+      const tripNombre = trip?.profile?.nombre ?? ''
+      const gestor = { id: session.user.id, nombre: perfil.nombre }
+      if (asignacion.modo === 'asignar') {
+        if (!vehiculoSel) return
+        const sol = await asignarTripulante(asignacion.solicitud.id,
+          { tripulante_id: tripulanteSel, tripulante_nombre: tripNombre, vehiculo_id: Number(vehiculoSel) },
+          gestor, comentarioAsig)
+        void notificar('asignada', sol, { comentario: comentarioAsig })
+      } else {
+        const sol = await reasignarTripulante(asignacion.solicitud.id,
+          { tripulante_id: tripulanteSel, tripulante_nombre: tripNombre, tripulante_anterior_id: asignacion.solicitud.tripulante_id },
+          gestor, motivoReasig)
+        void notificar('reasignada', sol, { comentario: motivoReasig })
+      }
+      setAsignacion(null); await cargar()
+    } finally { setGuardandoAsig(false) }
+  }
 
   return (
     <div>
@@ -134,7 +184,7 @@ export default function Gestion() {
         <Tabla>
           <THead><tr>
             <TH>Código</TH><TH>Solicitante</TH><TH>Área</TH><TH>Destino</TH><TH>Requerido</TH>
-            <TH>Vehículo</TH><TH>Estado</TH><TH className="text-right">Acciones</TH>
+            <TH>Vehículo</TH><TH>Tripulante</TH><TH>Estado</TH><TH className="text-right">Acciones</TH>
           </tr></THead>
           <tbody>
             {filas.map((s, i) => (
@@ -145,9 +195,14 @@ export default function Gestion() {
                 <TD>{s.destino}</TD>
                 <TD>{s.fecha_requerida ?? '—'} {s.hora_requerida ?? ''}</TD>
                 <TD>{s.tipo_vehiculo?.nombre ?? '—'}</TD>
+                <TD>{s.tripulante_nombre ?? '—'}</TD>
                 <TD><EstadoBadge estado={s.estado} /></TD>
                 <TD className="text-right whitespace-nowrap">
                   <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirGestion(s)}>Gestionar</button>
+                  {s.estado === 'aprobada' &&
+                    <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirAsignar(s)}>Asignar tripulante</button>}
+                  {(s.estado === 'asignada' || s.estado === 'no_atendida') &&
+                    <button className="text-[#16468E] hover:underline mr-3" onClick={() => abrirReasignar(s)}>Reasignar</button>}
                   {perfil?.rol === 'administrador' &&
                     <button className="text-rose-600 hover:underline" onClick={() => borrar(s)}>Eliminar</button>}
                 </TD>
@@ -202,6 +257,52 @@ export default function Gestion() {
             <div className="flex justify-end gap-2">
               <Boton variante="secundario" onClick={() => setG(null)}>Cancelar</Boton>
               <Boton onClick={aplicar} disabled={!nuevoEstado || guardando}>{guardando ? 'Guardando…' : 'Aplicar y notificar'}</Boton>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!asignacion} onClose={() => setAsignacion(null)}
+        titulo={`${asignacion?.modo === 'reasignar' ? 'Reasignar' : 'Asignar tripulante'} · ${asignacion?.solicitud.codigo ?? ''}`} ancho="max-w-lg">
+        {asignacion && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div><b>{asignacion.solicitud.solicitante_nombre}</b> · {asignacion.solicitud.area?.nombre}</div>
+              <div className="text-slate-600">{asignacion.solicitud.destino} · {asignacion.solicitud.fecha_requerida} {asignacion.solicitud.hora_requerida}</div>
+              {asignacion.modo === 'reasignar' && (
+                <div className="mt-1 text-slate-500">Tripulante actual: <b>{asignacion.solicitud.tripulante_nombre ?? '—'}</b></div>
+              )}
+            </div>
+            <Campo label={asignacion.modo === 'reasignar' ? 'Nuevo tripulante *' : 'Tripulante *'}>
+              <Select value={tripulanteSel} onChange={(e) => setTripulanteSel(e.target.value)}>
+                <option value="">— Seleccione —</option>
+                {tripulantes.map((t) => <option key={t.id} value={t.id}>{t.profile?.nombre ?? t.identificacion}</option>)}
+              </Select>
+            </Campo>
+            {asignacion.modo === 'asignar' && (
+              <Campo label="Vehículo *">
+                <Select value={vehiculoSel} onChange={(e) => setVehiculoSel(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">— Seleccione —</option>
+                  {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.placas} · {v.marca} {v.modelo}</option>)}
+                </Select>
+              </Campo>
+            )}
+            {asignacion.modo === 'asignar' ? (
+              <Campo label="Comentario (opcional)">
+                <Textarea rows={2} value={comentarioAsig} onChange={(e) => setComentarioAsig(e.target.value)} />
+              </Campo>
+            ) : (
+              <Campo label="Motivo de la reasignación *">
+                <Textarea rows={2} value={motivoReasig} onChange={(e) => setMotivoReasig(e.target.value)}
+                  placeholder="Vehículo no disponible, falla mecánica, etc." />
+              </Campo>
+            )}
+            <div className="flex justify-end gap-2">
+              <Boton variante="secundario" onClick={() => setAsignacion(null)}>Cancelar</Boton>
+              <Boton onClick={aplicarAsignacion}
+                disabled={guardandoAsig || !tripulanteSel || (asignacion.modo === 'asignar' && !vehiculoSel) || (asignacion.modo === 'reasignar' && !motivoReasig)}>
+                {guardandoAsig ? 'Guardando…' : 'Guardar y notificar'}
+              </Boton>
             </div>
           </div>
         )}

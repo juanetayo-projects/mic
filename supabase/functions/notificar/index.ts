@@ -53,6 +53,7 @@ function tablaDatos(s, area, veh) {
 const COLORES = {
   solicitada: '#64748b', aprobada: '#10b981', programada: '#2563eb',
   realizada: '#8b5cf6', aplazada: '#f59e0b', rechazada: '#ef4444', cancelada: '#ef4444',
+  asignada: '#2563eb', atendida: '#8b5cf6', no_atendida: '#ef4444',
 }
 const badge = (estado) =>
   `<span style='display:inline-block;background:${COLORES[estado] ?? '#64748b'};color:#fff;border-radius:999px;padding:3px 12px;font-size:13px;text-transform:capitalize'>${estado}</span>`
@@ -77,10 +78,16 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
     const { evento, solicitud: s, estado, comentario } = await req.json()
 
-    let area = '-', veh = '-', emailSolicitante = null
+    let area = '-', veh = '-', emailSolicitante = null, emailTripulante = null, emailGestor = null, placasVehiculo = '-'
     if (s.area_id) area = (await admin.from('areas').select('nombre').eq('id', s.area_id).single()).data?.nombre ?? '-'
     if (s.tipo_vehiculo_id) veh = (await admin.from('tipos_vehiculo').select('nombre').eq('id', s.tipo_vehiculo_id).single()).data?.nombre ?? '-'
     if (s.solicitante_id) emailSolicitante = (await admin.from('profiles').select('email').eq('id', s.solicitante_id).single()).data?.email ?? null
+    if (s.tripulante_id) emailTripulante = (await admin.from('tripulantes').select('profile:profiles(email)').eq('id', s.tripulante_id).single()).data?.profile?.email ?? null
+    if (s.gestionado_por) emailGestor = (await admin.from('profiles').select('email').eq('id', s.gestionado_por).single()).data?.email ?? null
+    if (s.vehiculo_id) {
+      const v = (await admin.from('vehiculos').select('placas, marca, modelo').eq('id', s.vehiculo_id).single()).data
+      if (v) placasVehiculo = `${v.placas} (${v.marca} ${v.modelo})`.trim()
+    }
 
     if (evento === 'nueva') {
       if (emailSolicitante)
@@ -95,6 +102,25 @@ Deno.serve(async (req) => {
         await enviar(from, emailSolicitante, `Solicitud ${s.codigo}: ${estado} - MIC`,
           plantilla('Actualizacion de su solicitud',
             `${codigoBox(s.codigo)}<p style='text-align:center'>El estado de su solicitud cambio a: ${badge(estado)}</p>${comentario ? `<p style='background:#f1f5f9;border-radius:8px;padding:10px 12px'><b>Comentario:</b> ${comentario}</p>` : ''}${tablaDatos(s, area, veh)}`), key)
+    } else if (evento === 'asignada' || evento === 'reasignada') {
+      const titulo = evento === 'reasignada' ? 'Servicio reasignado a usted' : 'Nuevo servicio asignado'
+      if (emailTripulante)
+        await enviar(from, emailTripulante, `Servicio asignado: ${s.codigo} - MIC`,
+          plantilla(titulo,
+            `<p>Se le ha asignado el siguiente servicio de transporte. Ingrese a <b>Mis solicitudes</b> para gestionarlo.</p>${codigoBox(s.codigo)}${tablaDatos(s, area, veh)}<p><b>Vehiculo asignado:</b> ${placasVehiculo}</p>${comentario ? `<p style='background:#f1f5f9;border-radius:8px;padding:10px 12px'><b>Comentario:</b> ${comentario}</p>` : ''}`), key)
+    } else if (evento === 'atendida') {
+      if (emailSolicitante)
+        await enviar(from, emailSolicitante, `Solicitud ${s.codigo} atendida - MIC`,
+          plantilla('Su servicio fue atendido',
+            `${codigoBox(s.codigo)}<p style='text-align:center'>${badge('atendida')}</p>${tablaDatos(s, area, veh)}<table style='width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 16px'>
+              <tr><td style='padding:6px 0;color:#64748b;width:42%'>Inicio del servicio</td><td style='padding:6px 0;font-weight:600'>${s.fecha_hora_inicio_servicio ?? '-'}</td></tr>
+              <tr><td style='padding:6px 0;color:#64748b'>Fin del servicio</td><td style='padding:6px 0;font-weight:600'>${s.fecha_hora_fin_servicio ?? '-'}</td></tr>
+            </table>${s.observaciones_atencion ? `<p style='background:#f1f5f9;border-radius:8px;padding:10px 12px'><b>Observaciones:</b> ${s.observaciones_atencion}</p>` : ''}`), key)
+    } else if (evento === 'no_atendida') {
+      const cuerpo = `<p>El servicio no pudo ser atendido por el tripulante asignado.</p>${codigoBox(s.codigo)}${tablaDatos(s, area, veh)}<p style='background:#fef2f2;border-radius:8px;padding:10px 12px;color:#991b1b'><b>Motivo:</b> ${s.motivo_no_atendida ?? comentario ?? '-'}</p><p>Por favor reasigne el servicio a otro tripulante cuanto antes.</p>`
+      await enviar(from, encargado, `Servicio NO atendido: ${s.codigo} - MIC`, plantilla('Servicio no atendido', cuerpo), key)
+      if (emailGestor && emailGestor !== encargado)
+        await enviar(from, emailGestor, `Servicio NO atendido: ${s.codigo} - MIC`, plantilla('Servicio no atendido', cuerpo), key)
     }
     return json(200, { ok: true })
   } catch (e) {

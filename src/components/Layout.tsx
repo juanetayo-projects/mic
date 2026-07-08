@@ -6,9 +6,9 @@ const LOGO_BLANCO = `${import.meta.env.BASE_URL}images/logo_cacsb_blanc.png`
 
 type Item = { to: string; label: string; icono: string }
 
-const operativos = (esGestor: boolean): Item[] => [
-  { to: '/', label: 'Mis solicitudes', icono: '📋' },
-  { to: '/nueva', label: 'Nueva solicitud', icono: '➕' },
+const operativos = (esGestor: boolean, esTripulante: boolean): Item[] => [
+  { to: '/', label: esTripulante ? 'Mis servicios asignados' : 'Mis solicitudes', icono: '📋' },
+  ...(esTripulante ? [] : [{ to: '/nueva', label: 'Nueva solicitud', icono: '➕' }]),
   ...(esGestor ? [
     { to: '/gestion', label: 'Gestión de solicitudes', icono: '✅' },
     { to: '/dashboard', label: 'Dashboard', icono: '📊' },
@@ -30,6 +30,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [openAdmin, setOpenAdmin] = useState(true)
   const esGestor = perfil?.rol === 'administrador' || perfil?.rol === 'coordinador'
   const esAdmin = perfil?.rol === 'administrador'
+  const esTripulante = perfil?.rol === 'tripulante'
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
@@ -45,7 +46,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <span className="text-[10px] uppercase tracking-wider opacity-70">MIC</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {operativos(esGestor).map((i) => (
+          {operativos(esGestor, esTripulante).map((i) => (
             <NavLink key={i.to} to={i.to} end={i.to === '/'} className={linkCls}>
               <span>{i.icono}</span>{i.label}
             </NavLink>

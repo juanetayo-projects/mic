@@ -26,6 +26,7 @@ function Guard({ roles, children }: { roles?: Rol[]; children: JSX.Element }) {
 
 const gestor: Rol[] = ['administrador', 'coordinador']
 const soloAdmin: Rol[] = ['administrador']
+const noTripulante: Rol[] = ['administrador', 'coordinador', 'solicitante']
 
 export default function App() {
   const { session, loading } = useAuth()
@@ -34,7 +35,7 @@ export default function App() {
       <Route path="/login" element={loading ? <Spinner /> : session ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/restablecer" element={<Restablecer />} />
       <Route path="/" element={<Guard><MisSolicitudes /></Guard>} />
-      <Route path="/nueva" element={<Guard><NuevaSolicitud /></Guard>} />
+      <Route path="/nueva" element={<Guard roles={noTripulante}><NuevaSolicitud /></Guard>} />
       <Route path="/gestion" element={<Guard roles={gestor}><Gestion /></Guard>} />
       <Route path="/dashboard" element={<Guard roles={gestor}><Dashboard /></Guard>} />
       <Route path="/reportes" element={<Guard roles={gestor}><Reportes /></Guard>} />

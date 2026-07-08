@@ -1,36 +1,66 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { listarSolicitudes, eventosDe, Solicitud, Estado, ESTADOS } from '../lib/data'
-import { PageHeader, FilterBar, Campo, Select, Input, Boton, Tabla, THead, TH, TR, TD, EstadoBadge, Modal, Spinner } from '../components/ui'
+import { listarSolicitudes, listarVehiculos, eventosDe, Solicitud, Estado, ESTADOS, Vehiculo } from '../lib/data'
+import { PageHeader, FilterBar, Campo, Select, Input, Boton, Tabla, THead, TH, TR, TD, EstadoBadge, Modal, Spinner, MetricCard } from '../components/ui'
 import IconoVehiculo from '../components/IconoVehiculo'
+import FormularioAtencion from '../components/FormularioAtencion'
 
 export default function MisSolicitudes() {
   const { session, perfil } = useAuth()
+  const esTripulante = perfil?.rol === 'tripulante'
   const [filas, setFilas] = useState<Solicitud[]>([])
+  const [resumen, setResumen] = useState<Solicitud[]>([])
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [cargando, setCargando] = useState(true)
   const [estado, setEstado] = useState<Estado | ''>('')
   const [texto, setTexto] = useState('')
+  const [destino, setDestino] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [detalle, setDetalle] = useState<Solicitud | null>(null)
   const [eventos, setEventos] = useState<any[]>([])
+  const [atendiendo, setAtendiendo] = useState<Solicitud | null>(null)
 
   async function cargar() {
     if (!session) return
     setCargando(true)
-    const data = await listarSolicitudes({ soloMias: session.user.id, estado, texto })
+    const filtro = esTripulante
+      ? { soloTripulante: session.user.id, estado, destino, fecha_desde: fechaDesde, fecha_hasta: fechaHasta }
+      : { soloMias: session.user.id, estado, texto }
+    const data = await listarSolicitudes(filtro)
     setFilas(data); setCargando(false)
   }
-  useEffect(() => { void cargar() }, [estado])
+  async function cargarResumen() {
+    if (!session || !esTripulante) return
+    setResumen(await listarSolicitudes({ soloTripulante: session.user.id }))
+  }
+  useEffect(() => { void cargar(); void cargarResumen() }, [estado, esTripulante])
+  useEffect(() => { if (esTripulante) void listarVehiculos(true).then(setVehiculos) }, [esTripulante])
 
   async function verDetalle(s: Solicitud) {
     setDetalle(s)
     setEventos(await eventosDe(s.id))
   }
 
+  const totalAsignadas = resumen.length
+  const pendientes = resumen.filter((s) => s.estado === 'asignada').length
+  const atendidas = resumen.filter((s) => s.estado === 'atendida').length
+  const noAtendidas = resumen.filter((s) => s.estado === 'no_atendida').length
+
   return (
     <div>
-      <PageHeader titulo="Mis solicitudes" subtitulo={`Hola, ${perfil?.nombre ?? ''}`}
-        acciones={<Link to="/nueva"><Boton>➕ Nueva solicitud</Boton></Link>} />
+      <PageHeader titulo={esTripulante ? 'Mis servicios asignados' : 'Mis solicitudes'} subtitulo={`Hola, ${perfil?.nombre ?? ''}`}
+        acciones={!esTripulante && <Link to="/nueva"><Boton>➕ Nueva solicitud</Boton></Link>} />
+
+      {esTripulante && (
+        <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <MetricCard titulo="Total asignadas" valor={totalAsignadas} icono="📋" />
+          <MetricCard titulo="Pendientes" valor={pendientes} icono="🕒" color="ambar" />
+          <MetricCard titulo="Atendidas" valor={atendidas} icono="✅" color="morado" />
+          <MetricCard titulo="No atendidas" valor={noAtendidas} icono="⚠️" color="rojo" />
+        </div>
+      )}
 
       <FilterBar>
         <Campo label="Estado">
@@ -39,10 +69,21 @@ export default function MisSolicitudes() {
             {ESTADOS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
           </Select>
         </Campo>
-        <Campo label="Buscar">
-          <Input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Código, destino…"
-            onKeyDown={(e) => e.key === 'Enter' && cargar()} />
-        </Campo>
+        {esTripulante ? (
+          <>
+            <Campo label="Destino">
+              <Input value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Destino…"
+                onKeyDown={(e) => e.key === 'Enter' && cargar()} />
+            </Campo>
+            <Campo label="Desde"><Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} /></Campo>
+            <Campo label="Hasta"><Input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} /></Campo>
+          </>
+        ) : (
+          <Campo label="Buscar">
+            <Input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Código, destino…"
+              onKeyDown={(e) => e.key === 'Enter' && cargar()} />
+          </Campo>
+        )}
         <Boton variante="secundario" onClick={cargar}>Filtrar</Boton>
       </FilterBar>
 
@@ -61,10 +102,14 @@ export default function MisSolicitudes() {
                 <TD>{s.tipo_vehiculo?.nombre ?? '—'}</TD>
                 <TD>{s.fecha_requerida ?? '—'} {s.hora_requerida ?? ''}</TD>
                 <TD><EstadoBadge estado={s.estado} /></TD>
-                <TD><button className="text-[#16468E] hover:underline" onClick={() => verDetalle(s)}>Ver</button></TD>
+                <TD className="whitespace-nowrap">
+                  {esTripulante && s.estado === 'asignada' &&
+                    <button className="text-[#16468E] hover:underline mr-3" onClick={() => setAtendiendo(s)}>Atender</button>}
+                  <button className="text-[#16468E] hover:underline" onClick={() => verDetalle(s)}>Ver</button>
+                </TD>
               </TR>
             ))}
-            {filas.length === 0 && <TR><TD className="text-slate-400">No tiene solicitudes registradas.</TD></TR>}
+            {filas.length === 0 && <TR><TD className="text-slate-400">{esTripulante ? 'No tiene servicios asignados.' : 'No tiene solicitudes registradas.'}</TD></TR>}
           </tbody>
         </Tabla>
       )}
@@ -109,6 +154,12 @@ export default function MisSolicitudes() {
           </div>
         )}
       </Modal>
+
+      {atendiendo && (
+        <FormularioAtencion solicitud={atendiendo} vehiculos={vehiculos}
+          onClose={() => setAtendiendo(null)}
+          onGuardado={() => { setAtendiendo(null); void cargar(); void cargarResumen() }} />
+      )}
     </div>
   )
 }
