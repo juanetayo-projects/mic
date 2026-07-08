@@ -8,6 +8,7 @@ export type CampoDef = {
   tipo?: 'text' | 'number' | 'boolean' | 'select' | 'date'
   optionsTable?: string       // tabla FK
   optionLabel?: string        // columna a mostrar
+  opcionesFijas?: { value: string; label: string }[]  // select sin FK (p.ej. valores de un CHECK)
   requerido?: boolean
   soloLectura?: boolean       // no editable (p.ej. id, created_at)
   ocultarEnTabla?: boolean
@@ -58,7 +59,7 @@ export default function CrudTable({ tabla, titulo, campos, orden }: Props) {
       if (c.soloLectura) continue
       let v = editando[c.key]
       if (c.tipo === 'number') v = v === '' ? null : Number(v)
-      if (c.tipo === 'select') v = v === '' ? null : v
+      if (c.tipo === 'select' || c.tipo === 'date') v = v === '' ? null : v
       payload[c.key] = v
     }
     const q = esNuevo
@@ -82,6 +83,9 @@ export default function CrudTable({ tabla, titulo, campos, orden }: Props) {
 
   function etiqueta(c: CampoDef, f: Record<string, any>) {
     if (c.tipo === 'boolean') return f[c.key] ? 'Sí' : 'No'
+    if (c.tipo === 'select' && c.opcionesFijas) {
+      return c.opcionesFijas.find((o) => o.value === f[c.key])?.label ?? '—'
+    }
     if (c.tipo === 'select' && opciones[c.key]) {
       return opciones[c.key].find((o) => o.id === f[c.key])?.label ?? '—'
     }
@@ -122,6 +126,11 @@ export default function CrudTable({ tabla, titulo, campos, orden }: Props) {
                 {c.tipo === 'boolean' ? (
                   <Select value={editando[c.key] ? '1' : '0'} onChange={(e) => setEditando({ ...editando, [c.key]: e.target.value === '1' })}>
                     <option value="1">Sí</option><option value="0">No</option>
+                  </Select>
+                ) : c.tipo === 'select' && c.opcionesFijas ? (
+                  <Select value={editando[c.key] ?? ''} onChange={(e) => setEditando({ ...editando, [c.key]: e.target.value })}>
+                    <option value="">— Seleccione —</option>
+                    {c.opcionesFijas.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </Select>
                 ) : c.tipo === 'select' ? (
                   <Select value={editando[c.key] ?? ''} onChange={(e) => setEditando({ ...editando, [c.key]: e.target.value })}>

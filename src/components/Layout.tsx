@@ -19,7 +19,9 @@ const operativos = (esGestor: boolean): Item[] => [
 const admin: Item[] = [
   { to: '/admin/usuarios', label: 'Usuarios', icono: '👤' },
   { to: '/admin/areas', label: 'Áreas / Procesos', icono: '🏷️' },
-  { to: '/admin/vehiculos', label: 'Tipos de vehículo', icono: '🚗' },
+  { to: '/admin/tipos-vehiculo', label: 'Tipos de vehículo', icono: '🚗' },
+  { to: '/admin/vehiculos', label: 'Vehículos (flota)', icono: '🚐' },
+  { to: '/admin/tripulantes', label: 'Tripulantes', icono: '🧑‍✈️' },
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {

@@ -12,7 +12,9 @@ import Dashboard from './pages/Dashboard'
 import Reportes from './pages/Reportes'
 import Usuarios from './pages/admin/Usuarios'
 import Areas from './pages/admin/Areas'
+import TiposVehiculo from './pages/admin/TiposVehiculo'
 import Vehiculos from './pages/admin/Vehiculos'
+import Tripulantes from './pages/admin/Tripulantes'
 
 function Guard({ roles, children }: { roles?: Rol[]; children: JSX.Element }) {
   const { session, perfil, loading } = useAuth()
@@ -38,7 +40,9 @@ export default function App() {
       <Route path="/reportes" element={<Guard roles={gestor}><Reportes /></Guard>} />
       <Route path="/admin/usuarios" element={<Guard roles={soloAdmin}><Usuarios /></Guard>} />
       <Route path="/admin/areas" element={<Guard roles={soloAdmin}><Areas /></Guard>} />
+      <Route path="/admin/tipos-vehiculo" element={<Guard roles={soloAdmin}><TiposVehiculo /></Guard>} />
       <Route path="/admin/vehiculos" element={<Guard roles={soloAdmin}><Vehiculos /></Guard>} />
+      <Route path="/admin/tripulantes" element={<Guard roles={soloAdmin}><Tripulantes /></Guard>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
