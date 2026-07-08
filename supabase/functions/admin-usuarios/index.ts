@@ -52,6 +52,18 @@ Deno.serve(async (req) => {
       return json(200, { ok: true })
     }
 
+    if (accion === 'actualizarEmail') {
+      if (!id || !email) return json(400, { error: 'Faltan datos' })
+      const { data: perfilObjetivo } = await admin.from('profiles').select('rol').eq('id', id).single()
+      // Los tripulantes pueden no tener correo institucional (p.ej. conductores externos)
+      if (perfilObjetivo?.rol !== 'tripulante' && !String(email).toLowerCase().endsWith('@cacsantabarbara.co'))
+        return json(400, { error: 'El correo debe ser @cacsantabarbara.co' })
+      const { error } = await admin.auth.admin.updateUserById(id, { email, email_confirm: true })
+      if (error) return json(400, { error: error.message })
+      await admin.from('profiles').update({ email }).eq('id', id)
+      return json(200, { ok: true })
+    }
+
     if (accion === 'eliminar') {
       if (!id) return json(400, { error: 'Falta id' })
       const { error } = await admin.auth.admin.deleteUser(id)

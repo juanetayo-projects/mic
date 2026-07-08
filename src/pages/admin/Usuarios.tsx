@@ -11,6 +11,7 @@ export default function Usuarios() {
   const [cargando, setCargando] = useState(true)
   const [nuevo, setNuevo] = useState<{ email: string; nombre: string; password: string; rol: string; area_id: string } | null>(null)
   const [editar, setEditar] = useState<Perfil | null>(null)
+  const [emailOriginal, setEmailOriginal] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -39,6 +40,11 @@ export default function Usuarios() {
 
   async function guardarEdicion() {
     if (!editar) return
+    setErr(''); setMsg('')
+    if (editar.email !== emailOriginal) {
+      const ok = await invocar({ accion: 'actualizarEmail', id: editar.id, email: editar.email })
+      if (!ok) return
+    }
     // rol/área/estado se editan directo en profiles (RLS admin)
     const { error } = await supabase.from('profiles')
       .update({ rol: editar.rol, area_id: editar.area_id, activo: editar.activo, nombre: editar.nombre })
@@ -82,7 +88,7 @@ export default function Usuarios() {
                 <TD>{areaNom(p.area_id)}</TD>
                 <TD>{p.activo ? 'Sí' : 'No'}</TD>
                 <TD className="text-right whitespace-nowrap">
-                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => setEditar({ ...p })}>Editar</button>
+                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => { setEditar({ ...p }); setEmailOriginal(p.email) }}>Editar</button>
                   <button className="text-[#16468E] hover:underline mr-3" onClick={() => resetPass(p)}>Clave</button>
                   <button className="text-rose-600 hover:underline" onClick={() => eliminar(p)}>Eliminar</button>
                 </TD>
@@ -120,6 +126,7 @@ export default function Usuarios() {
         {editar && (
           <div className="flex flex-col gap-3">
             <Campo label="Nombre"><Input value={editar.nombre} onChange={(e) => setEditar({ ...editar, nombre: e.target.value })} /></Campo>
+            <Campo label="Correo"><Input type="email" value={editar.email} onChange={(e) => setEditar({ ...editar, email: e.target.value })} /></Campo>
             <Campo label="Rol">
               <Select value={editar.rol} onChange={(e) => setEditar({ ...editar, rol: e.target.value })}>
                 <option value="solicitante">Solicitante</option><option value="coordinador">Coordinador</option><option value="administrador">Administrador</option>

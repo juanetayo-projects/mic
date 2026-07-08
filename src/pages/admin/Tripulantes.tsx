@@ -22,6 +22,7 @@ export default function Tripulantes() {
   const [cargando, setCargando] = useState(true)
   const [nuevo, setNuevo] = useState<Nuevo | null>(null)
   const [editar, setEditar] = useState<Tripulante | null>(null)
+  const [emailOriginal, setEmailOriginal] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -62,6 +63,11 @@ export default function Tripulantes() {
 
   async function guardarEdicion() {
     if (!editar) return
+    setErr(''); setMsg('')
+    if (editar.profile?.email && editar.profile.email !== emailOriginal) {
+      const resp = await invocar({ accion: 'actualizarEmail', id: editar.id, email: editar.profile.email })
+      if (!resp) return
+    }
     const { error } = await supabase.from('tripulantes').update({
       identificacion: editar.identificacion,
       tarjeta_conduccion: editar.tarjeta_conduccion,
@@ -111,7 +117,7 @@ export default function Tripulantes() {
                 <TD>{t.fecha_vencimiento_licencia ?? '—'}</TD>
                 <TD>{t.activo ? 'Sí' : 'No'}</TD>
                 <TD className="text-right whitespace-nowrap">
-                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => setEditar({ ...t })}>Editar</button>
+                  <button className="text-[#16468E] hover:underline mr-3" onClick={() => { setEditar({ ...t }); setEmailOriginal(t.profile?.email ?? '') }}>Editar</button>
                   <button className="text-[#16468E] hover:underline mr-3" onClick={() => resetPass(t)}>Clave</button>
                   <button className="text-rose-600 hover:underline" onClick={() => eliminar(t)}>Eliminar</button>
                 </TD>
@@ -148,6 +154,10 @@ export default function Tripulantes() {
             <Campo label="Nombre">
               <Input value={editar.profile?.nombre ?? ''}
                 onChange={(e) => setEditar({ ...editar, profile: { ...(editar.profile ?? { email: '', activo: true }), nombre: e.target.value } })} />
+            </Campo>
+            <Campo label="Correo">
+              <Input type="email" value={editar.profile?.email ?? ''}
+                onChange={(e) => setEditar({ ...editar, profile: { ...(editar.profile ?? { nombre: '', activo: true }), email: e.target.value } })} />
             </Campo>
             <Campo label="Identificación"><Input value={editar.identificacion} onChange={(e) => setEditar({ ...editar, identificacion: e.target.value })} /></Campo>
             <Campo label="Tarjeta de conducción"><Input value={editar.tarjeta_conduccion ?? ''} onChange={(e) => setEditar({ ...editar, tarjeta_conduccion: e.target.value })} /></Campo>
