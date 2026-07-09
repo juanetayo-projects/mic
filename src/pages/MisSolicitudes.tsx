@@ -38,6 +38,11 @@ export default function MisSolicitudes() {
   useEffect(() => { void cargar(); void cargarResumen() }, [estado, esTripulante])
   useEffect(() => { if (esTripulante) void listarVehiculos(true).then(setVehiculos) }, [esTripulante])
 
+  async function actualizar() {
+    await cargar()
+    await cargarResumen()
+  }
+
   async function verDetalle(s: Solicitud) {
     setDetalle(s)
     setEventos(await eventosDe(s.id))
@@ -51,7 +56,9 @@ export default function MisSolicitudes() {
   return (
     <div>
       <PageHeader titulo={esTripulante ? 'Mis servicios asignados' : 'Mis solicitudes'} subtitulo={`Hola, ${perfil?.nombre ?? ''}`}
-        acciones={!esTripulante && <Link to="/nueva"><Boton>➕ Nueva solicitud</Boton></Link>} />
+        acciones={esTripulante
+          ? <Boton variante="secundario" onClick={actualizar} disabled={cargando}>🔄 Actualizar</Boton>
+          : <Link to="/nueva"><Boton>➕ Nueva solicitud</Boton></Link>} />
 
       {esTripulante && (
         <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
