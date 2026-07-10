@@ -9,6 +9,32 @@ import {
   PageHeader, FilterBar, Campo, Select, Input, Textarea, Boton, Tabla, THead, TH, TR, TD, Modal, Spinner, EstadoBadge,
 } from '../components/ui'
 
+const NIVELES_COMBUSTIBLE = [
+  { value: 25, label: '1/4' },
+  { value: 50, label: '1/2' },
+  { value: 75, label: '3/4' },
+  { value: 100, label: 'Full' },
+]
+function combustibleLabel(v: number | null) {
+  if (v == null) return '—'
+  return NIVELES_COMBUSTIBLE.find((n) => n.value === v)?.label ?? `${v}%`
+}
+function SelectorCombustible({ name, value, onChange }: { name: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {NIVELES_COMBUSTIBLE.map((n) => (
+        <label key={n.value} className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+          Number(value) === n.value ? 'border-blue-400 bg-blue-100 text-blue-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50'
+        }`}>
+          <input type="radio" name={name} checked={Number(value) === n.value}
+            onChange={() => onChange(String(n.value))} className="h-4 w-4 accent-blue-600" />
+          {n.label}
+        </label>
+      ))}
+    </div>
+  )
+}
+
 export default function RodamientoPage() {
   const { session, perfil } = useAuth()
   const esGestor = perfil?.rol === 'administrador' || perfil?.rol === 'coordinador'
@@ -169,7 +195,7 @@ export default function RodamientoPage() {
                 <TD>{formatDuracion(r.fecha_inicio_turno, r.fecha_fin_turno)}</TD>
                 <TD>{r.kilometraje_inicial ?? '—'}</TD>
                 <TD>{r.kilometraje_final ?? '—'}</TD>
-                <TD>{r.combustible_inicial ?? '—'}% → {r.combustible_final ?? '—'}%</TD>
+                <TD>{combustibleLabel(r.combustible_inicial)} → {combustibleLabel(r.combustible_final)}</TD>
                 <TD><EstadoBadge estado={r.estado} /></TD>
                 <TD className="text-right whitespace-nowrap">
                   {r.estado === 'abierto' && (esGestor || r.tripulante_id === session?.user.id) &&
@@ -200,10 +226,10 @@ export default function RodamientoPage() {
               {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.placas} · {v.marca} {v.modelo}</option>)}
             </Select>
           </Campo>
-          <div className="grid grid-cols-2 gap-3">
-            <Campo label="Kilometraje inicial"><Input type="number" value={kmInicial} onChange={(e) => setKmInicial(e.target.value)} /></Campo>
-            <Campo label="Combustible inicial (%)"><Input type="number" min={0} max={100} value={combInicial} onChange={(e) => setCombInicial(e.target.value)} /></Campo>
-          </div>
+          <Campo label="Kilometraje inicial"><Input type="number" value={kmInicial} onChange={(e) => setKmInicial(e.target.value)} /></Campo>
+          <Campo label="Combustible inicial">
+            <SelectorCombustible name="combInicial" value={combInicial} onChange={setCombInicial} />
+          </Campo>
           <Campo label="Condiciones del vehículo"><Textarea rows={2} value={condInicial} onChange={(e) => setCondInicial(e.target.value)} /></Campo>
           {errAbrir && <p className="text-sm text-rose-600">{errAbrir}</p>}
           <div className="flex justify-end gap-2">
@@ -222,10 +248,10 @@ export default function RodamientoPage() {
             <div className="rounded-lg bg-slate-50 p-3 text-slate-600">
               Inicio: {new Date(cerrando.fecha_inicio_turno).toLocaleString('es-CO')} · Km inicial: {cerrando.kilometraje_inicial ?? '—'}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Campo label="Kilometraje final"><Input type="number" value={kmFinal} onChange={(e) => setKmFinal(e.target.value)} /></Campo>
-              <Campo label="Combustible final (%)"><Input type="number" min={0} max={100} value={combFinal} onChange={(e) => setCombFinal(e.target.value)} /></Campo>
-            </div>
+            <Campo label="Kilometraje final"><Input type="number" value={kmFinal} onChange={(e) => setKmFinal(e.target.value)} /></Campo>
+            <Campo label="Combustible final">
+              <SelectorCombustible name="combFinal" value={combFinal} onChange={setCombFinal} />
+            </Campo>
             <Campo label="Condiciones del vehículo al cierre"><Textarea rows={2} value={condFinal} onChange={(e) => setCondFinal(e.target.value)} /></Campo>
             <Campo label="Adjuntos (PDF o fotos)">
               <div className="flex items-center gap-3">

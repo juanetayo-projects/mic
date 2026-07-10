@@ -25,6 +25,7 @@ export default function Tripulantes() {
   const [emailOriginal, setEmailOriginal] = useState('')
   const [resetPara, setResetPara] = useState<Tripulante | null>(null)
   const [nuevaClave, setNuevaClave] = useState('')
+  const [confirmarClave, setConfirmarClave] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -85,10 +86,10 @@ export default function Tripulantes() {
   }
 
   function abrirReset(t: Tripulante) {
-    setResetPara(t); setNuevaClave(''); setErr(''); setMsg('')
+    setResetPara(t); setNuevaClave(''); setConfirmarClave(''); setErr(''); setMsg('')
   }
   async function confirmarReset() {
-    if (!resetPara || !nuevaClave) return
+    if (!resetPara || !nuevaClave || nuevaClave !== confirmarClave) return
     if (await invocar({ accion: 'reset', id: resetPara.id, password: nuevaClave })) {
       setMsg('Contraseña actualizada.'); setResetPara(null)
     }
@@ -193,10 +194,14 @@ export default function Tripulantes() {
             <Campo label="Nueva contraseña">
               <Input type="password" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} autoFocus />
             </Campo>
+            <Campo label="Confirmar contraseña">
+              <Input type="password" value={confirmarClave} onChange={(e) => setConfirmarClave(e.target.value)} />
+            </Campo>
+            {confirmarClave && nuevaClave !== confirmarClave && <p className="text-sm text-rose-600">Las contraseñas no coinciden.</p>}
             {err && <p className="text-sm text-rose-600">{err}</p>}
             <div className="flex justify-end gap-2">
               <Boton variante="secundario" onClick={() => setResetPara(null)}>Cancelar</Boton>
-              <Boton onClick={confirmarReset} disabled={!nuevaClave}>Actualizar</Boton>
+              <Boton onClick={confirmarReset} disabled={!nuevaClave || nuevaClave !== confirmarClave}>Actualizar</Boton>
             </div>
           </div>
         )}

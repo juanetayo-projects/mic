@@ -72,6 +72,11 @@ export default function FormularioAtencion({ solicitud: s, vehiculos, onClose, o
           <div><b>{s.solicitante_nombre}</b> · {s.area?.nombre ?? '—'}</div>
           <div className="text-slate-600">{s.destino} · {s.fecha_requerida ?? '—'} {s.hora_requerida ?? ''}</div>
           <div className="text-slate-500">{s.descripcion}</div>
+          {s.observaciones_geriater && (
+            <div className="mt-2 rounded-md bg-amber-50 px-2 py-1.5 text-amber-800">
+              <b>Observaciones GERIATER:</b> {s.observaciones_geriater}
+            </div>
+          )}
         </div>
 
         {!noAtendida ? (

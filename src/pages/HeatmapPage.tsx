@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../lib/auth'
 import {
-  listarSolicitudes, listarAreas, listarTiposVehiculo, getHeatmapConfig,
-  Solicitud, Estado, ESTADOS, Area, TipoVehiculo,
+  listarSolicitudes, listarAreas, listarTiposVehiculo, listarTripulantes, getHeatmapConfig,
+  Solicitud, Estado, ESTADOS, Area, TipoVehiculo, Tripulante,
 } from '../lib/data'
 import { PageHeader, FilterBar, Campo, Select, Input, Boton, Spinner } from '../components/ui'
 import HeatmapDemanda from '../components/HeatmapDemanda'
+import HeatmapEjecucionTripulante from '../components/HeatmapEjecucionTripulante'
 
 const ANIOS = [2024, 2025, 2026, 2027]
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -14,9 +15,12 @@ export default function HeatmapPage() {
   const { session, perfil } = useAuth()
   const esTripulante = perfil?.rol === 'tripulante'
 
+  const [vista, setVista] = useState<'demanda' | 'ejecucion'>('demanda')
   const [filas, setFilas] = useState<Solicitud[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [tipos, setTipos] = useState<TipoVehiculo[]>([])
+  const [tripulantes, setTripulantes] = useState<Tripulante[]>([])
+  const [tripulanteSel, setTripulanteSel] = useState('')
   const [colores, setColores] = useState<string[]>()
   const [cargando, setCargando] = useState(true)
   const [f, setF] = useState({
@@ -36,21 +40,47 @@ export default function HeatmapPage() {
     void listarAreas().then(setAreas)
     void listarTiposVehiculo().then(setTipos)
     void getHeatmapConfig().then((c) => setColores(c.colores))
-  }, [])
+    if (!esTripulante) void listarTripulantes(true).then(setTripulantes)
+  }, [esTripulante])
   useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.anio, f.mes, session, esTripulante])
+
+  const filasEjecucion = useMemo(() => filas.filter((s) =>
+    s.estado === 'atendida' && s.fecha_hora_inicio_servicio &&
+    (!tripulanteSel || s.tripulante_id === tripulanteSel)), [filas, tripulanteSel])
 
   return (
     <div>
       <PageHeader titulo="Mapa de calor" subtitulo={esTripulante
-        ? 'Demanda de sus servicios por día de la semana y hora requerida'
-        : 'Demanda de transporte por día de la semana y hora requerida'} />
+        ? 'Demanda y ejecución de sus servicios por día de la semana y hora'
+        : 'Demanda de transporte y ejecución de tripulantes por día de la semana y hora'} />
+
+      <div className="mb-4 flex gap-2">
+        <button onClick={() => setVista('demanda')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            vista === 'demanda' ? 'bg-[#0D2D6B] text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+          }`}>Demanda de solicitudes</button>
+        <button onClick={() => setVista('ejecucion')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            vista === 'ejecucion' ? 'bg-[#0D2D6B] text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+          }`}>Ejecución de tripulantes</button>
+      </div>
 
       <FilterBar>
-        <Campo label="Estado">
-          <Select value={f.estado} onChange={(e) => set('estado', e.target.value)}>
-            <option value="">Todos</option>{ESTADOS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
-          </Select>
-        </Campo>
+        {vista === 'demanda' && (
+          <Campo label="Estado">
+            <Select value={f.estado} onChange={(e) => set('estado', e.target.value)}>
+              <option value="">Todos</option>{ESTADOS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
+            </Select>
+          </Campo>
+        )}
+        {vista === 'ejecucion' && !esTripulante && (
+          <Campo label="Tripulante">
+            <Select value={tripulanteSel} onChange={(e) => setTripulanteSel(e.target.value)}>
+              <option value="">Todos</option>
+              {tripulantes.map((t) => <option key={t.id} value={t.id}>{t.profile?.nombre ?? t.identificacion}</option>)}
+            </Select>
+          </Campo>
+        )}
         <Campo label="Área">
           <Select value={f.area_id} onChange={(e) => set('area_id', e.target.value ? Number(e.target.value) : '')}>
             <option value="">Todas</option>{areas.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
@@ -80,12 +110,20 @@ export default function HeatmapPage() {
 
       {cargando ? <Spinner /> : (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-          {filas.length > 0
-            ? <HeatmapDemanda solicitudes={filas} colores={colores} />
-            : <p className="py-8 text-center text-slate-400">No hay solicitudes que coincidan con los filtros.</p>}
+          {vista === 'demanda' ? (
+            filas.length > 0
+              ? <HeatmapDemanda solicitudes={filas} colores={colores} />
+              : <p className="py-8 text-center text-slate-400">No hay solicitudes que coincidan con los filtros.</p>
+          ) : (
+            filasEjecucion.length > 0
+              ? <HeatmapEjecucionTripulante solicitudes={filasEjecucion} colores={colores} />
+              : <p className="py-8 text-center text-slate-400">No hay servicios atendidos que coincidan con los filtros.</p>
+          )}
         </div>
       )}
-      <p className="mt-2 text-xs text-slate-400">{filas.length} solicitud(es)</p>
+      <p className="mt-2 text-xs text-slate-400">
+        {vista === 'demanda' ? `${filas.length} solicitud(es)` : `${filasEjecucion.length} servicio(s) atendido(s)`}
+      </p>
     </div>
   )
 }

@@ -1,5 +1,25 @@
 import { supabase } from './supabase'
 
+// Dominio institucional + proveedores de correo públicos conocidos aceptados en el
+// registro (mantener en sync con supabase/migrations/0011_... y admin-usuarios/index.ts).
+export const DOMINIOS_CONOCIDOS = [
+  'cacsantabarbara.co', 'gmail.com', 'hotmail.com', 'outlook.com',
+  'yahoo.com', 'yahoo.es', 'icloud.com', 'live.com', 'msn.com', 'protonmail.com',
+]
+
+export function correoPermitido(email: string): boolean {
+  const dominio = email.trim().toLowerCase().split('@')[1] ?? ''
+  return DOMINIOS_CONOCIDOS.includes(dominio)
+}
+
+// Días de calendario hasta una fecha 'YYYY-MM-DD' (negativo si ya pasó); null si no hay fecha.
+export function diasHasta(fecha: string | null): number | null {
+  if (!fecha) return null
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+  const f = new Date(fecha + 'T00:00')
+  return Math.round((f.getTime() - hoy.getTime()) / 86400000)
+}
+
 export type Estado =
   | 'solicitada' | 'aprobada' | 'aplazada'
   | 'rechazada' | 'programada' | 'realizada' | 'cancelada'
@@ -98,6 +118,8 @@ export type Solicitud = {
   fecha_hora_fin_servicio: string | null
   observaciones_atencion: string | null
   motivo_no_atendida: string | null
+  evento: boolean
+  observaciones_viaticos: string | null
   area?: Area | null
   tipo_vehiculo?: TipoVehiculo | null
   vehiculo?: Vehiculo | null
@@ -151,6 +173,7 @@ export type FiltrosSolicitud = {
   fecha_hasta?: string
   soloMias?: string       // uid si solo las del solicitante
   soloTripulante?: string // uid si solo las asignadas a un tripulante
+  evento?: boolean | ''
 }
 
 export async function listarSolicitudes(f: FiltrosSolicitud = {}) {
@@ -164,6 +187,7 @@ export async function listarSolicitudes(f: FiltrosSolicitud = {}) {
   if (f.tripulante_id) q = q.eq('tripulante_id', f.tripulante_id)
   if (f.soloMias) q = q.eq('solicitante_id', f.soloMias)
   if (f.soloTripulante) q = q.eq('tripulante_id', f.soloTripulante)
+  if (f.evento !== undefined && f.evento !== '') q = q.eq('evento', f.evento)
   if (f.destino) q = q.ilike('destino', `%${f.destino}%`)
   if (f.fecha_desde) q = q.gte('fecha_requerida', f.fecha_desde)
   if (f.fecha_hasta) q = q.lte('fecha_requerida', f.fecha_hasta)
@@ -242,29 +266,6 @@ export async function eventosDe(solicitudId: number) {
     .select('*').eq('solicitud_id', solicitudId).order('created_at')
   if (error) throw error
   return data ?? []
-}
-
-export async function asignarTripulante(
-  id: number,
-  datos: { tripulante_id: string; tripulante_nombre: string; vehiculo_id: number },
-  gestor: { id: string; nombre: string },
-  comentario = '',
-) {
-  const cambios: Partial<Solicitud> = {
-    estado: 'asignada',
-    tripulante_id: datos.tripulante_id,
-    tripulante_nombre: datos.tripulante_nombre,
-    vehiculo_id: datos.vehiculo_id,
-    fecha_asignacion: new Date().toISOString(),
-    gestionado_por: gestor.id,
-    fecha_gestion: new Date().toISOString(),
-  }
-  const sol = await actualizarSolicitud(id, cambios)
-  await supabase.from('solicitud_eventos').insert({
-    solicitud_id: id, estado: 'asignada', comentario: comentario || null,
-    actor_id: gestor.id, actor_nombre: gestor.nombre,
-  })
-  return sol
 }
 
 export async function reasignarTripulante(

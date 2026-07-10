@@ -14,6 +14,7 @@ export default function Usuarios() {
   const [emailOriginal, setEmailOriginal] = useState('')
   const [resetPara, setResetPara] = useState<Perfil | null>(null)
   const [nuevaClave, setNuevaClave] = useState('')
+  const [confirmarClave, setConfirmarClave] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
@@ -56,10 +57,10 @@ export default function Usuarios() {
   }
 
   function abrirReset(p: Perfil) {
-    setResetPara(p); setNuevaClave(''); setErr(''); setMsg('')
+    setResetPara(p); setNuevaClave(''); setConfirmarClave(''); setErr(''); setMsg('')
   }
   async function confirmarReset() {
-    if (!resetPara || !nuevaClave) return
+    if (!resetPara || !nuevaClave || nuevaClave !== confirmarClave) return
     if (await invocar({ accion: 'reset', id: resetPara.id, password: nuevaClave })) {
       setMsg('Contraseña actualizada.'); setResetPara(null)
     }
@@ -113,7 +114,9 @@ export default function Usuarios() {
             <Campo label="Contraseña"><Input value={nuevo.password} onChange={(e) => setNuevo({ ...nuevo, password: e.target.value })} /></Campo>
             <Campo label="Rol">
               <Select value={nuevo.rol} onChange={(e) => setNuevo({ ...nuevo, rol: e.target.value })}>
-                <option value="solicitante">Solicitante</option><option value="coordinador">Coordinador</option><option value="administrador">Administrador</option>
+                <option value="solicitante">Solicitante</option><option value="coordinador">Coordinador</option>
+                <option value="coordinador_administrativo">Coordinador administrativo</option>
+                <option value="administrador">Administrador</option>
               </Select>
             </Campo>
             <Campo label="Área (opcional)">
@@ -135,7 +138,9 @@ export default function Usuarios() {
             <Campo label="Correo"><Input type="email" value={editar.email} onChange={(e) => setEditar({ ...editar, email: e.target.value })} /></Campo>
             <Campo label="Rol">
               <Select value={editar.rol} onChange={(e) => setEditar({ ...editar, rol: e.target.value })}>
-                <option value="solicitante">Solicitante</option><option value="coordinador">Coordinador</option><option value="administrador">Administrador</option>
+                <option value="solicitante">Solicitante</option><option value="coordinador">Coordinador</option>
+                <option value="coordinador_administrativo">Coordinador administrativo</option>
+                <option value="administrador">Administrador</option>
               </Select>
             </Campo>
             <Campo label="Área">
@@ -160,10 +165,14 @@ export default function Usuarios() {
             <Campo label="Nueva contraseña">
               <Input type="password" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} autoFocus />
             </Campo>
+            <Campo label="Confirmar contraseña">
+              <Input type="password" value={confirmarClave} onChange={(e) => setConfirmarClave(e.target.value)} />
+            </Campo>
+            {confirmarClave && nuevaClave !== confirmarClave && <p className="text-sm text-rose-600">Las contraseñas no coinciden.</p>}
             {err && <p className="text-sm text-rose-600">{err}</p>}
             <div className="flex justify-end gap-2">
               <Boton variante="secundario" onClick={() => setResetPara(null)}>Cancelar</Boton>
-              <Boton onClick={confirmarReset} disabled={!nuevaClave}>Actualizar</Boton>
+              <Boton onClick={confirmarReset} disabled={!nuevaClave || nuevaClave !== confirmarClave}>Actualizar</Boton>
             </div>
           </div>
         )}

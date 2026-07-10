@@ -10,6 +10,17 @@ const cors = {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
+// Dominio institucional + proveedores públicos conocidos (mantener en sync con
+// supabase/migrations/0011_... y src/lib/data.ts).
+const DOMINIOS_CONOCIDOS = [
+  'cacsantabarbara.co', 'gmail.com', 'hotmail.com', 'outlook.com',
+  'yahoo.com', 'yahoo.es', 'icloud.com', 'live.com', 'msn.com', 'protonmail.com',
+]
+function correoPermitido(email: string): boolean {
+  const dominio = email.trim().toLowerCase().split('@')[1] ?? ''
+  return DOMINIOS_CONOCIDOS.includes(dominio)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
@@ -34,8 +45,8 @@ Deno.serve(async (req) => {
     if (accion === 'crear') {
       if (!email) return json(400, { error: 'Falta el correo' })
       // Los tripulantes pueden no tener correo institucional (p.ej. conductores externos)
-      if (rol !== 'tripulante' && !String(email).toLowerCase().endsWith('@cacsantabarbara.co'))
-        return json(400, { error: 'El correo debe ser @cacsantabarbara.co' })
+      if (rol !== 'tripulante' && !correoPermitido(String(email)))
+        return json(400, { error: 'El correo debe ser @cacsantabarbara.co o de un proveedor conocido (gmail, hotmail, outlook, etc.)' })
       const { data, error } = await admin.auth.admin.createUser({
         email, password, email_confirm: true, user_metadata: { nombre, rol: rol ?? 'solicitante' },
       })
@@ -56,8 +67,8 @@ Deno.serve(async (req) => {
       if (!id || !email) return json(400, { error: 'Faltan datos' })
       const { data: perfilObjetivo } = await admin.from('profiles').select('rol').eq('id', id).single()
       // Los tripulantes pueden no tener correo institucional (p.ej. conductores externos)
-      if (perfilObjetivo?.rol !== 'tripulante' && !String(email).toLowerCase().endsWith('@cacsantabarbara.co'))
-        return json(400, { error: 'El correo debe ser @cacsantabarbara.co' })
+      if (perfilObjetivo?.rol !== 'tripulante' && !correoPermitido(String(email)))
+        return json(400, { error: 'El correo debe ser @cacsantabarbara.co o de un proveedor conocido (gmail, hotmail, outlook, etc.)' })
       const { error } = await admin.auth.admin.updateUserById(id, { email, email_confirm: true })
       if (error) return json(400, { error: error.message })
       await admin.from('profiles').update({ email }).eq('id', id)

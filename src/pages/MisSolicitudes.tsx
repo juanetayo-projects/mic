@@ -9,6 +9,7 @@ import FormularioAtencion from '../components/FormularioAtencion'
 export default function MisSolicitudes() {
   const { session, perfil } = useAuth()
   const esTripulante = perfil?.rol === 'tripulante'
+  const puedeSolicitar = perfil?.rol !== 'tripulante' && perfil?.rol !== 'coordinador_administrativo'
   const [filas, setFilas] = useState<Solicitud[]>([])
   const [resumen, setResumen] = useState<Solicitud[]>([])
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
@@ -58,7 +59,7 @@ export default function MisSolicitudes() {
       <PageHeader titulo={esTripulante ? 'Mis servicios asignados' : 'Mis solicitudes'} subtitulo={`Hola, ${perfil?.nombre ?? ''}`}
         acciones={esTripulante
           ? <Boton variante="secundario" onClick={actualizar} disabled={cargando}>🔄 Actualizar</Boton>
-          : <Link to="/nueva"><Boton>➕ Nueva solicitud</Boton></Link>} />
+          : puedeSolicitar ? <Link to="/nueva"><Boton>➕ Nueva solicitud</Boton></Link> : undefined} />
 
       {esTripulante && (
         <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -140,6 +141,7 @@ export default function MisSolicitudes() {
             <Dato l="Descripción" v={detalle.descripcion} />
             {detalle.observaciones && <Dato l="Observaciones" v={detalle.observaciones} />}
             {detalle.respuesta && <Dato l="Respuesta del coordinador" v={detalle.respuesta} />}
+            {detalle.observaciones_geriater && <Dato l="Observaciones GERIATER" v={detalle.observaciones_geriater} />}
             <div className="flex items-end justify-between gap-4">
               <div className="flex-1">
                 <p className="mb-1 font-semibold text-slate-600">Historial</p>

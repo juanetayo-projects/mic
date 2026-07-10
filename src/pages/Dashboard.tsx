@@ -4,10 +4,12 @@ import {
   CartesianGrid, Legend, LineChart, Line,
 } from 'recharts'
 import {
-  listarSolicitudes, listarAreas, listarTiposVehiculo, listarVehiculos, listarTripulantes,
-  Solicitud, Estado, ESTADOS, Area, TipoVehiculo,
+  listarSolicitudes, listarAreas, listarTiposVehiculo, listarVehiculos, listarTripulantes, diasHasta,
+  Solicitud, Estado, ESTADOS, Area, TipoVehiculo, Vehiculo, Tripulante,
 } from '../lib/data'
-import { PageHeader, FilterBar, Campo, Select, Input, Boton, MetricCard, Spinner } from '../components/ui'
+import { PageHeader, FilterBar, Campo, Select, Input, Boton, MetricCard, Spinner, Tabla, THead, TH, TR, TD } from '../components/ui'
+
+const ALERTA_DIAS = 30
 
 const ANIOS = [2024, 2025, 2026, 2027]
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -21,8 +23,8 @@ export default function Dashboard() {
   const [filas, setFilas] = useState<Solicitud[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [tipos, setTipos] = useState<TipoVehiculo[]>([])
-  const [vehiculosActivos, setVehiculosActivos] = useState(0)
-  const [tripulantesActivos, setTripulantesActivos] = useState(0)
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
+  const [tripulantesList, setTripulantesList] = useState<Tripulante[]>([])
   const [cargando, setCargando] = useState(true)
   const [f, setF] = useState({ estado: '' as Estado | '', area_id: '' as number | '', tipo_vehiculo_id: '' as number | '', anio: 2026 as number | '', mes: '' as number | '', texto: '' })
   const set = (k: keyof typeof f, v: any) => setF((p) => ({ ...p, [k]: v }))
@@ -31,8 +33,8 @@ export default function Dashboard() {
   useEffect(() => {
     void listarAreas().then(setAreas)
     void listarTiposVehiculo().then(setTipos)
-    void listarVehiculos(true).then((v) => setVehiculosActivos(v.length))
-    void listarTripulantes(true).then((t) => setTripulantesActivos(t.length))
+    void listarVehiculos(true).then(setVehiculos)
+    void listarTripulantes(true).then(setTripulantesList)
   }, [])
   useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.anio, f.mes])
 
@@ -52,6 +54,28 @@ export default function Dashboard() {
     }))
     return { porEstado, topAreas, porVehiculo, porMes }
   }, [filas])
+
+  // Alertas de vencimiento de documentos: SOAT/seguro/tecnomecánica de vehículos activos
+  // y licencia de conducción de tripulantes activos, dentro de los próximos ALERTA_DIAS días.
+  const alertas = useMemo(() => {
+    const filas: { tipo: string; entidad: string; vence: string; dias: number }[] = []
+    for (const v of vehiculos) {
+      const campos: [string, string | null][] = [
+        ['SOAT', v.soat_vencimiento], ['Seguro', v.seguro_vencimiento], ['Tecnomecánica', v.tecnomecanica_vencimiento],
+      ]
+      for (const [tipo, fecha] of campos) {
+        const dias = diasHasta(fecha)
+        if (dias !== null && dias <= ALERTA_DIAS)
+          filas.push({ tipo, entidad: `${v.placas} · ${v.marca} ${v.modelo}`.trim(), vence: fecha as string, dias })
+      }
+    }
+    for (const t of tripulantesList) {
+      const dias = diasHasta(t.fecha_vencimiento_licencia)
+      if (dias !== null && dias <= ALERTA_DIAS)
+        filas.push({ tipo: 'Licencia conducción', entidad: t.profile?.nombre ?? t.identificacion, vence: t.fecha_vencimiento_licencia as string, dias })
+    }
+    return filas.sort((a, b) => a.dias - b.dias)
+  }, [vehiculos, tripulantesList])
 
   const total = filas.length
   const cnt = (e: string) => filas.filter((x) => x.estado === e).length
@@ -103,10 +127,37 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <MetricCard titulo="Vehículos activos" valor={vehiculosActivos} icono="🚗" color="cyan" />
-            <MetricCard titulo="Tripulantes activos" valor={tripulantesActivos} icono="🧑‍✈️" color="cyan" />
+            <MetricCard titulo="Vehículos activos" valor={vehiculos.length} icono="🚗" color="cyan" />
+            <MetricCard titulo="Tripulantes activos" valor={tripulantesList.length} icono="🧑‍✈️" color="cyan" />
             <MetricCard titulo="Atendidas" valor={cnt('atendida')} icono="✅" color="verde" />
             <MetricCard titulo="No atendidas" valor={cnt('no_atendida')} icono="⚠️" color="rojo" />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+            <h3 className="mb-3 font-semibold text-[#0D2D6B]">⚠️ Alertas de vencimiento</h3>
+            {alertas.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-400">Sin vencimientos en los próximos {ALERTA_DIAS} días.</p>
+            ) : (
+              <Tabla>
+                <THead><tr><TH>Tipo</TH><TH>Entidad</TH><TH>Vence</TH><TH>Estado</TH></tr></THead>
+                <tbody>
+                  {alertas.map((a, i) => (
+                    <TR key={`${a.tipo}-${a.entidad}-${i}`} i={i}>
+                      <TD>{a.tipo}</TD>
+                      <TD>{a.entidad}</TD>
+                      <TD className="whitespace-nowrap">{a.vence}</TD>
+                      <TD>
+                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
+                          a.dias < 0 ? 'bg-rose-100 text-rose-700 ring-rose-300' : 'bg-amber-100 text-amber-700 ring-amber-300'
+                        }`}>
+                          {a.dias < 0 ? `Vencido hace ${Math.abs(a.dias)} día(s)` : a.dias === 0 ? 'Vence hoy' : `Vence en ${a.dias} día(s)`}
+                        </span>
+                      </TD>
+                    </TR>
+                  ))}
+                </tbody>
+              </Tabla>
+            )}
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">

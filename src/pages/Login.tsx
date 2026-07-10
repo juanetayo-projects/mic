@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { correoPermitido } from '../lib/data'
 import { Boton, Input } from '../components/ui'
 
 type Modo = 'ingresar' | 'registrar' | 'recuperar'
@@ -24,8 +25,8 @@ export default function Login() {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
         if (error) throw new Error('Credenciales inválidas o usuario no confirmado.')
       } else if (modo === 'registrar') {
-        if (!email.toLowerCase().endsWith('@cacsantabarbara.co'))
-          throw new Error('Debe usar su correo institucional @cacsantabarbara.co')
+        if (!correoPermitido(email))
+          throw new Error('Use su correo institucional @cacsantabarbara.co o uno de un proveedor conocido (Gmail, Outlook, Hotmail, Yahoo…)')
         const { error } = await supabase.auth.signUp({
           email, password: pass,
           options: { data: { nombre }, emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
@@ -65,7 +66,7 @@ export default function Login() {
           {modo === 'registrar' && (
             <Input placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
           )}
-          <Input type="email" placeholder="correo@cacsantabarbara.co" value={email}
+          <Input type="email" placeholder={modo === 'registrar' ? 'correo@cacsantabarbara.co o gmail.com…' : 'correo@cacsantabarbara.co'} value={email}
             onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
           {modo !== 'recuperar' && (
             <div className="relative">

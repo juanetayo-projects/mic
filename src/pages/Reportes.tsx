@@ -22,6 +22,7 @@ const COLS = [
   { header: 'Fecha req.', key: 'fecha_requerida', width: 12 },
   { header: 'Hora', key: 'hora_requerida', width: 9 },
   { header: 'Estado', key: 'estado', width: 12 },
+  { header: 'Evento', key: 'evento', width: 8 },
   { header: 'Respuesta', key: 'respuesta', width: 28 },
 ]
 
@@ -36,7 +37,7 @@ export default function Reportes() {
   const [f, setF] = useState({
     estado: '' as Estado | '', area_id: '' as number | '', tipo_vehiculo_id: '' as number | '',
     vehiculo_id: '' as number | '', tripulante_id: '' as string | '',
-    anio: '' as number | '', mes: '' as number | '', texto: '',
+    anio: '' as number | '', mes: '' as number | '', texto: '', evento: '' as boolean | '',
   })
   const set = (k: keyof typeof f, v: any) => setF((p) => ({ ...p, [k]: v }))
 
@@ -47,7 +48,7 @@ export default function Reportes() {
     void listarVehiculos().then(setVehiculos)
     void listarTripulantes().then(setTripulantes)
   }, [])
-  useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.vehiculo_id, f.tripulante_id, f.anio, f.mes])
+  useEffect(() => { void cargar() }, [f.estado, f.area_id, f.tipo_vehiculo_id, f.vehiculo_id, f.tripulante_id, f.anio, f.mes, f.evento])
   useEffect(() => {
     void listarRodamiento({ vehiculo_id: f.vehiculo_id, tripulante_id: f.tripulante_id, estado: 'cerrado' })
       .then(setRodamientoFilas)
@@ -100,7 +101,8 @@ export default function Reportes() {
       area: s.area?.nombre ?? '', tipo_vehiculo: s.tipo_vehiculo?.nombre ?? '', placas: s.vehiculo?.placas ?? '',
       tripulante: s.tripulante_nombre ?? '', destino: s.destino,
       cantidad_personas: s.cantidad_personas, fecha_requerida: s.fecha_requerida ?? '',
-      hora_requerida: s.hora_requerida ?? '', estado: s.estado, respuesta: s.respuesta ?? '',
+      hora_requerida: s.hora_requerida ?? '', estado: s.estado, evento: s.evento ? 'Sí' : 'No',
+      respuesta: s.respuesta ?? '',
     }
   }
 
@@ -158,6 +160,12 @@ export default function Reportes() {
             <option value="">Todos</option>{MESES.map((mm, i) => <option key={mm} value={i + 1}>{mm}</option>)}
           </Select>
         </Campo>
+        <Campo label="Evento">
+          <Select value={f.evento === '' ? '' : f.evento ? '1' : '0'}
+            onChange={(e) => set('evento', e.target.value === '' ? '' : e.target.value === '1')}>
+            <option value="">Todos</option><option value="1">Sí</option><option value="0">No</option>
+          </Select>
+        </Campo>
         <Campo label="Buscar">
           <Input value={f.texto} onChange={(e) => set('texto', e.target.value)} placeholder="Código, destino…"
             onKeyDown={(e) => e.key === 'Enter' && cargar()} />
@@ -169,7 +177,7 @@ export default function Reportes() {
         <>
           <Tabla>
             <THead><tr>
-              <TH>Código</TH><TH>Fecha</TH><TH>Solicitante</TH><TH>Área</TH><TH>Destino</TH><TH>Tripulante</TH><TH>Estado</TH>
+              <TH>Código</TH><TH>Fecha</TH><TH>Solicitante</TH><TH>Área</TH><TH>Destino</TH><TH>Tripulante</TH><TH>Evento</TH><TH>Estado</TH>
             </tr></THead>
             <tbody>
               {filas.slice(0, 300).map((s, i) => (
@@ -180,6 +188,7 @@ export default function Reportes() {
                   <TD>{s.area?.nombre ?? '—'}</TD>
                   <TD>{s.destino}</TD>
                   <TD>{s.tripulante_nombre ?? '—'}</TD>
+                  <TD>{s.evento ? 'Sí' : 'No'}</TD>
                   <TD><EstadoBadge estado={s.estado} /></TD>
                 </TR>
               ))}

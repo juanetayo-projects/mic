@@ -121,6 +121,15 @@ Deno.serve(async (req) => {
       await enviar(from, encargado, `Servicio NO atendido: ${s.codigo} - MIC`, plantilla('Servicio no atendido', cuerpo), key)
       if (emailGestor && emailGestor !== encargado)
         await enviar(from, emailGestor, `Servicio NO atendido: ${s.codigo} - MIC`, plantilla('Servicio no atendido', cuerpo), key)
+    } else if (evento === 'viaticos') {
+      const { data: coordinadores } = await admin.from('profiles').select('email')
+        .eq('rol', 'coordinador_administrativo').eq('activo', true)
+      const destinatarios = (coordinadores ?? []).map((p) => p.email).filter(Boolean)
+      if (destinatarios.length) {
+        await enviar(from, destinatarios, `Solicitud aprobada por viáticos: ${s.codigo} - MIC`,
+          plantilla('Aprobada sin asignación de tripulante (viáticos)',
+            `<p>La solicitud fue aprobada pero el coordinador determinó que no aplica transporte con tripulante asignado. Requiere gestión de viáticos.</p>${codigoBox(s.codigo)}${tablaDatos(s, area, veh)}${comentario ? `<p style='background:#fef3c7;border-radius:8px;padding:10px 12px'><b>Observaciones de viáticos:</b> ${comentario}</p>` : ''}`), key)
+      }
     }
     return json(200, { ok: true })
   } catch (e) {
